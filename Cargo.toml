@@ -1,0 +1,15 @@
+[package]
+name = "dir-signature"
+description = """
+    This crate allows to create a signature (index) of a directory with files.
+"""
+license = "MIT/Apache-2.0"
+readme = "README.rst"
+keywords = ["dir", "signature", "file", "syncrhonization"]
+homepage = "http://github.com/tailhook/dir-signature"
+documentation = "http://docs.rs/dir-signature"
+version = "0.1.0"
+authors = ["paul@colomiets.name"]
+
+[dependencies]
+quick-error = "1.1.0"
