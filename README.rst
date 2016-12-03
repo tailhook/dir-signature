@@ -10,8 +10,9 @@ This crate allows to create a signature (index) of a directory with files,
 which is:
 
 * Reproducible (does not depend on order of file scan)
-* Easy to check even without having this crate
-* Usable for file synchonization (has checksums of files using small blocks)
+* Easy to check even using a bash script (sans edge cases)
+* Usable for file synchonization
+* Can be produced and checked without loading full index into memory
 
 
 License

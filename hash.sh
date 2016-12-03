@@ -1,0 +1,27 @@
+#!/bin/sh -e
+
+DIR=${1:-.}
+: ${HASH:=sha256}
+: ${HASH_CMD:=${HASH}sum}
+: ${BLOCK_SIZE:=32768}
+
+exec 3>&1
+{
+    cd $DIR
+    echo "DIRSIGNATURE.v1 $HASH block_size=$BLOCK_SIZE"
+    find ./ -type d | sort | while read dir; do
+        echo "/${dir#./}"
+        ls -1 "$dir" | sort | while read file; do
+            if [ -L "$dir/$file" ]; then
+                echo "  $file s $(readlink "$dir/$file")"
+            elif [ -f "$dir/$file" ]; then
+                size="$(stat "$dir/$file" --format %s)"
+                echo -n "  $file f $size"
+                for ((i = 0; i < size; i += BLOCK_SIZE)); do
+                    dd if="$dir/$file" skip=$((i / BLOCK_SIZE)) bs=$BLOCK_SIZE count=1 status=none | $HASH_CMD
+                done | cut -f1 -d ' ' | tr '\n' ' '
+                echo
+            fi
+        done
+    done
+} | tee /proc/self/fd/3 | sha256sum | cut -f1 -d' '
