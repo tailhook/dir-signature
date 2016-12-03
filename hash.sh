@@ -5,10 +5,11 @@ DIR=${1:-.}
 : ${HASH_CMD:=${HASH}sum}
 : ${BLOCK_SIZE:=32768}
 
+echo "DIRSIGNATURE.v1 $HASH block_size=$BLOCK_SIZE"
+
 exec 3>&1
 {
     cd $DIR
-    echo "DIRSIGNATURE.v1 $HASH block_size=$BLOCK_SIZE"
     find ./ -type d | sort | while read dir; do
         echo "/${dir#./}"
         ls -1 "$dir" | sort | while read file; do
