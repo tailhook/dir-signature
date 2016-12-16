@@ -1,11 +1,13 @@
 #!/bin/sh -e
 
 DIR=${1:-.}
-: ${HASH:=sha256}
+: ${HASH_BITS:=256}
+: ${HASH:=sha512}
 : ${HASH_CMD:=${HASH}sum}
+: ${HASH_BYTES:=$((HASH_BITS / 8 * 2))}
 : ${BLOCK_SIZE:=32768}
 
-echo "DIRSIGNATURE.v1 $HASH block_size=$BLOCK_SIZE"
+echo "DIRSIGNATURE.v1 $HASH/$HASH_BITS block_size=$BLOCK_SIZE"
 
 exec 3>&1
 {
@@ -20,9 +22,9 @@ exec 3>&1
                 echo -n "  $file f $size"
                 for ((i = 0; i < size; i += BLOCK_SIZE)); do
                     dd if="$dir/$file" skip=$((i / BLOCK_SIZE)) bs=$BLOCK_SIZE count=1 status=none | $HASH_CMD
-                done | cut -f1 -d ' ' | tr '\n' ' '
+                done | cut -c1-$HASH_BYTES | tr '\n' ' '
                 echo
             fi
         done
     done
-} | tee /proc/self/fd/3 | sha256sum | cut -f1 -d' '
+} | tee /proc/self/fd/3 | $HASH_CMD | cut -c1-$HASH_BYTES
