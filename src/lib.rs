@@ -1,14 +1,16 @@
 //! # Directory Signature Library
 //!
+//! ## v1
+//!
 //! Currently whe have only implemented `v1` version of signature file,
 //! it has the following limitations:
 //!
 //! * Only stores executable bit for files, no permissions and ownership
 //!   support (this also means files can be replicated without privileges)
-//! * It's ascii text, so potentially 2x larger than what binary file could
-//!   be
+//! * File modification times are not checked and not replicated
+//! * It's ascii text, so potentially 2x larger than what binary file could be
 //! * While technically block size and hash kind are configurable we don't
-//!   support anything other than 32768 and sha256
+//!   support anything other than 32768 and sha512/256
 //!
 //! While these limitations are not enough for generic backup purposes they
 //! are fine for deploying configs and read-only images to production servers
