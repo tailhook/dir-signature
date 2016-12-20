@@ -26,6 +26,12 @@
 //!
 #![warn(missing_docs)]
 
+extern crate openat;
+extern crate sha2;
+extern crate digest_writer;
+extern crate generic_array;
+extern crate typenum;
+#[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
 
 pub mod v1;
@@ -33,4 +39,15 @@ mod error;
 mod config;
 
 pub use error::Error;
-pub use config::ScannerConfig;
+
+use std::path::PathBuf;
+
+/// Scanner config contains a list of directories you will scan and other
+/// settings that influence filesystem scanning
+pub struct ScannerConfig {
+    threads: usize,
+    queue_size: Option<usize>,
+    hash: config::HashType,
+    block_size: u64,
+    dirs: Vec<(PathBuf, PathBuf)>,
+}
