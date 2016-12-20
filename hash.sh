@@ -10,7 +10,7 @@ DIR=${1:-.}
 echo "DIRSIGNATURE.v1 $HASH/$HASH_BITS block_size=$BLOCK_SIZE"
 
 exec 3>&1
-{
+final_hash=$({
     cd $DIR
     find ./ -type d | sort | while read dir; do
         echo "/${dir#./}"
@@ -27,4 +27,6 @@ exec 3>&1
             fi
         done
     done
-} | tee /proc/self/fd/3 | $HASH_CMD | cut -c1-$HASH_BYTES
+} | tee -a /proc/self/fd/3 | $HASH_CMD | cut -c1-$HASH_BYTES)
+
+echo $final_hash >> /proc/self/fd/3
