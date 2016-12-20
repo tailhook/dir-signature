@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::collections::VecDeque;
 
 use openat::Dir;
 
@@ -8,12 +9,17 @@ use Error::{OpenDir as EDir, ListDir as EList};
 use super::writer::Writer;
 
 
-fn find_roots(config: &ScannerConfig) -> Result<Vec<Arc<Dir>>, Error> {
+fn find_roots(config: &ScannerConfig)
+    -> Result<Vec<(Arc<Dir>, PathBuf)>, Error>
+{
     let mut root = Vec::new();
     for &(ref path, ref prefix) in &config.dirs {
         if prefix == Path::new("/") {
             let path: &Path = path;  // TODO(tailhook until openat() updated
-            root.push(Arc::new(Dir::open(path).map_err(EDir)?));
+            root.push((
+                Arc::new(Dir::open(path).map_err(EDir)?),
+                PathBuf::from("."),
+            ));
         }
     }
     if root.len() == 0 {
@@ -26,16 +32,17 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
     -> Result<(), Error>
 {
     use openat::SimpleType as T;
-    let mut stack = Vec::new();
-    let mut path = PathBuf::from("/");
+    let mut queue = VecDeque::new();
 
-    stack.push(find_roots(config)?);
+    queue.push_back((PathBuf::from("/"), find_roots(config)?));
 
-    while stack.len() > 0 {
-        let dirs = stack.pop().unwrap();
+    while queue.len() > 0 {
+        let (path, dirs) = queue.pop_front().unwrap();
         let mut subdirs = Vec::new();
         let mut files = Vec::new();
-        for dir in dirs {
+        for (base, name) in dirs {
+            let namepath: &Path = &name; // TODO(tailhook) fix me
+            let dir = Arc::new(base.sub_dir(namepath).map_err(EList)?);
             for entry in dir.list_dir(".").map_err(EList)? {
                 let entry = entry.map_err(EList)?;
                 let typ = match entry.simple_type() {
@@ -64,7 +71,14 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
         subdirs.sort_by(|&(_, ref a), &(_, ref b)| {
             a.file_name().cmp(&b.file_name())
         });
-        println!("Dirs {:?}", subdirs);
+        for (base, entry) in subdirs {
+            // TODO(tailhook) deduplicate! (kinda)
+            queue.push_back((
+                path.join(entry.file_name()),
+                vec![(base,
+                      Path::new(entry.file_name()).to_path_buf())],
+            ));
+        }
     }
 
     unimplemented!();
