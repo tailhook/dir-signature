@@ -10,6 +10,8 @@ use super::hash::Hash;
 pub trait Writer {
     fn start_dir(&mut self, path: &Path) -> Result<(), Error>;
     fn add_file(&mut self, dir: &Arc<Dir>, entry: Entry) -> Result<(), Error>;
+    fn add_symlink(&mut self, dir: &Arc<Dir>, entry: Entry)
+        -> Result<(), Error>;
 }
 
 pub struct SyncWriter<F, H> {
@@ -43,6 +45,18 @@ impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
             n = n.saturating_sub(self.block_size);
         }
         self.file.write_all(b"\n").map_err(EWrite)?;
+        Ok(())
+    }
+    fn add_symlink(&mut self, dir: &Arc<Dir>, entry: Entry)
+        -> Result<(), Error>
+    {
+        let dest = dir.read_link(&entry).map_err(EFile)?;
+        write!(&mut self.file, "  {} s {}\n",
+            // TODO(tailhook) escape correctly
+            Path::new(entry.file_name()).display(),
+            // TODO(tailhook) escape correctly
+            dest.display(),
+        ).map_err(EWrite)?;
         Ok(())
     }
 }

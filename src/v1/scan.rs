@@ -66,7 +66,15 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
         index.start_dir(&path)?;
         for (dir, entry) in files {
             // TODO(tailhook) deduplicate!
-            index.add_file(&dir, entry)?;
+            match entry.simple_type().unwrap() {
+                T::File => {
+                    index.add_file(&dir, entry)?;
+                }
+                T::Symlink => {
+                    index.add_symlink(&dir, entry)?;
+                }
+                _ => unreachable!(),
+            }
         }
         subdirs.sort_by(|&(_, ref a), &(_, ref b)| {
             a.file_name().cmp(&b.file_name())
