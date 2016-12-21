@@ -43,14 +43,14 @@ impl fmt::LowerHex for Sha512_256_Hex {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let data = &self.0[..32];  // Truncated hash!
         assert!(data.len() == 32);
-        let max_digits = f.precision().unwrap_or(data.len());
+        let max_digits = f.precision().unwrap_or(data.len()*2);
         let mut res = [0u8; 64];
-        for (i, c) in data.iter().take(max_digits).enumerate() {
+        for (i, c) in data.iter().take(max_digits/2+1).enumerate() {
             res[i*2] = LOWER_CHARS[(c >> 4) as usize];
             res[i*2+1] = LOWER_CHARS[(c & 0xF) as usize];
         }
         f.write_str(unsafe {
-            str::from_utf8_unchecked(&res[..max_digits*2])
+            str::from_utf8_unchecked(&res[..max_digits])
         })?;
         Ok(())
     }
