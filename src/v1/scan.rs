@@ -79,9 +79,9 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
         subdirs.sort_by(|&(_, ref a), &(_, ref b)| {
             a.file_name().cmp(&b.file_name())
         });
-        for (base, entry) in subdirs {
+        for (base, entry) in subdirs.into_iter().rev() {
             // TODO(tailhook) deduplicate! (kinda)
-            queue.push_back((
+            queue.push_front((
                 path.join(entry.file_name()),
                 vec![(base,
                       Path::new(entry.file_name()).to_path_buf())],
