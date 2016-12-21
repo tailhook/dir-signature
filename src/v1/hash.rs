@@ -13,9 +13,12 @@ static LOWER_CHARS: &'static[u8] = b"0123456789abcdef";
 
 pub trait Hash {
     type HexOutput: fmt::LowerHex;
+    type Digest: Digest;
     fn name(&self) -> &str;
-    fn hash<F: io::Read>(&self, f: F, block_size: u64)
+    fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
         -> io::Result<Self::HexOutput>;
+    fn total_hasher(&self) -> Self::Digest;
+    fn total_hash(&self, d: &Self::Digest) -> Self::HexOutput;
 }
 
 #[allow(non_camel_case_types)]
@@ -26,16 +29,23 @@ pub struct Sha512_256_Hex(GenericArray<u8, U64>);
 
 impl Hash for Sha512_256 {
     type HexOutput = Sha512_256_Hex;
+    type Digest = sha2::Sha512;
     fn name(&self) -> &str {
         "sha512/256"
     }
-    fn hash<F: io::Read>(&self, f: F, block_size: u64)
+    fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
         -> io::Result<Sha512_256_Hex>
     {
         let mut digest = DWriter::new(sha2::Sha512::new());
         io::copy(&mut f.take(block_size), &mut digest)?;
         let d = digest.into_inner();
         Ok(Sha512_256_Hex(d.result()))
+    }
+    fn total_hasher(&self) -> Self::Digest {
+        sha2::Sha512::new()
+    }
+    fn total_hash(&self, d: &Self::Digest) -> Self::HexOutput {
+        Sha512_256_Hex(d.result())
     }
 }
 

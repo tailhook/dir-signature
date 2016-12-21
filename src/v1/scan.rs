@@ -88,6 +88,6 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
             ));
         }
     }
-
-    unimplemented!();
+    index.done()?;
+    Ok(())
 }
