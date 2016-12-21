@@ -14,7 +14,7 @@ final_hash=$({
     cd $DIR
     find ./ -type d | sort | while read dir; do
         echo "/${dir#./}"
-        ls -1 "$dir" | sort | while read file; do
+        ls -A1 "$dir" | sort | while read file; do
             if [ -L "$dir/$file" ]; then
                 echo "  $file s $(readlink "$dir/$file")"
             elif [ -f "$dir/$file" ]; then
