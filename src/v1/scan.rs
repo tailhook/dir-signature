@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::collections::VecDeque;
 
 use openat::Dir;
+use itertools::Itertools;
 
 use {ScannerConfig, Error};
 use Error::{OpenDir as EDir, ListDir as EList};
@@ -77,14 +78,17 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
             }
         }
         subdirs.sort_by(|&(_, ref a), &(_, ref b)| {
-            a.file_name().cmp(&b.file_name())
+            b.file_name().cmp(&a.file_name())  // note: reverse sort
         });
-        for (base, entry) in subdirs.into_iter().rev() {
+        for (dirpath, seq) in subdirs.into_iter()
+            .group_by(|&(_, ref e)| path.join(e.file_name())).into_iter()
+        {
             // TODO(tailhook) deduplicate! (kinda)
             queue.push_front((
-                path.join(entry.file_name()),
-                vec![(base,
-                      Path::new(entry.file_name()).to_path_buf())],
+                dirpath,
+                seq.map(|(base, entry)|{
+                    (base, Path::new(entry.file_name()).to_path_buf())
+                }).collect()
             ));
         }
     }

@@ -31,6 +31,7 @@ extern crate sha2;
 extern crate digest_writer;
 extern crate generic_array;
 extern crate typenum;
+extern crate itertools;
 #[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
 
