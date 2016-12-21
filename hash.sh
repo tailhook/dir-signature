@@ -12,9 +12,9 @@ echo "DIRSIGNATURE.v1 $HASH/$HASH_BITS block_size=$BLOCK_SIZE"
 exec 3>&1
 final_hash=$({
     cd $DIR
-    find ./ -type d | sort | while read dir; do
+    find ./ -type d | tr '/' '\0' | LC_ALL=C sort | tr '\0' '/' | while read dir; do
         echo "/${dir#./}"
-        ls -A1 "$dir" | sort | while read file; do
+        ls -A1 "$dir" | LC_ALL=C sort | while read file; do
             if [ -L "$dir/$file" ]; then
                 echo "  $file s $(readlink "$dir/$file")"
             elif [ -f "$dir/$file" ]; then
