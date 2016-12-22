@@ -18,9 +18,11 @@ case sensitive and order is fixed. Parts have the following meaning:
 1. ``DIRSIGNATURE.v1 `` is a signature of a file format and version.
    Only ``v1` format is defined by this specification.
 
-2. Is a hash type (must be all lower case). This specification requires
-   support of only single hash type is ``sha512/256`` which means ``sha512``
-   truncated to a 256 bits. Other hash kinds might be added in future.
+2. Is a hash type (must be all lower case). This specification defines two
+   hash types ``blake2b/256`` (which is blake2b with 256 bit hash) and
+   ``sha512/256`` which means ``sha512`` truncated to a 256 bits.
+   Other hash kinds might be added in future. It's expected that sha512/256
+   will be supported by every implementation and others are optional.
 
 3. Space separated key value pairs. This specification defines only
    ``block_size``. It must be the first key in the header. This specification

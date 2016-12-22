@@ -28,6 +28,7 @@
 
 extern crate openat;
 extern crate sha2;
+extern crate blake2;
 extern crate digest_writer;
 extern crate generic_array;
 extern crate typenum;
@@ -38,8 +39,10 @@ extern crate itertools;
 pub mod v1;
 mod error;
 mod config;
+mod hash_type;
 
 pub use error::Error;
+pub use hash_type::HashType;
 
 use std::path::PathBuf;
 
@@ -48,7 +51,7 @@ use std::path::PathBuf;
 pub struct ScannerConfig {
     threads: usize,
     queue_size: Option<usize>,
-    hash: config::HashType,
+    hash: HashType,
     block_size: u64,
     dirs: Vec<(PathBuf, PathBuf)>,
 }

@@ -12,7 +12,7 @@ use std::process::exit;
 
 use argparse::{ArgumentParser, List, ParseOption, Store};
 
-use dir_signature::{v1, ScannerConfig};
+use dir_signature::{v1, ScannerConfig, HashType};
 
 
 pub fn run() -> i32 {
@@ -24,6 +24,7 @@ pub fn run() -> i32 {
     let mut index = None::<PathBuf>;
     let mut threads = num_cpus::get();
     let mut dirs = Vec::<String>::new();
+    let mut hash_type = HashType::Sha512_256;
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("
@@ -39,6 +40,11 @@ pub fn run() -> i32 {
             .add_option(&["-o", "--write-index"], ParseOption,
                 "The file to write index to")
             .metavar("PATH");
+        ap.refer(&mut hash_type)
+            .add_option(&["--hash"], Store,
+                "Use specified hasher.
+                 Options: `sha512/256` (default), `blake2b/256`.")
+            .metavar("HASH");
         ap.refer(&mut threads)
             .add_option(&["-t", "--threads"], Store,
                 "Number of threads to use for scanning (defaults to a number
@@ -52,6 +58,7 @@ pub fn run() -> i32 {
 
     let mut cfg = ScannerConfig::new();
     cfg.threads(threads);
+    cfg.hash(hash_type);
     for dir in dirs.iter() {
         let mut seq = dir.splitn(1, ':');
         let (prefix, path) = match (seq.next().unwrap(), seq.next()) {

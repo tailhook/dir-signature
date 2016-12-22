@@ -8,10 +8,9 @@ mod scan;
 use std::io;
 
 pub use error::Error;
-use config::HashType;
 
 use self::writer::SyncWriter;
-use {ScannerConfig};
+use {ScannerConfig, HashType};
 
 /// Create an index using specified config
 ///
@@ -24,6 +23,11 @@ pub fn scan<F: io::Write>(config: &ScannerConfig, out: &mut F)
             scan::scan(config,
                 &mut SyncWriter::new(out,
                     hash::Sha512_256, config.block_size)?)
+        }
+        HashType::Blake2b_256 => {
+            scan::scan(config,
+                &mut SyncWriter::new(out,
+                    hash::Blake2b_256, config.block_size)?)
         }
     }
 }

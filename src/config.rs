@@ -1,27 +1,13 @@
-use std::str::FromStr;
 use std::path::Path;
 
-use {ScannerConfig, Error};
-
-#[derive(Copy, Clone, Debug)]
-#[allow(non_camel_case_types)]
-pub enum HashType {
-    Sha512_256,
-}
-
-impl FromStr for HashType {
-    type Err = Error;
-    fn from_str(val: &str) -> Result<HashType, Self::Err> {
-        match val {
-            "sha512/256" => Ok(HashType::Sha512_256),
-            _ => Err(Error::UnsupportedHash),
-        }
-    }
-}
+use {ScannerConfig, HashType};
 
 
 impl ScannerConfig {
-    /// Create an empty scanner config
+    /// Create an empty scanner config with defaults
+    ///
+    /// By default we use ``sha512/256`` hasher as it increases
+    /// interoperability, but consider using ``blake2b/256`` as it 25% faster
     pub fn new() -> ScannerConfig {
         ScannerConfig {
             threads: 0,
@@ -30,6 +16,11 @@ impl ScannerConfig {
             block_size: 32768,
             dirs: Vec::new(),
         }
+    }
+    /// Use different hash type
+    pub fn hash(&mut self, hash: HashType) -> &mut Self {
+        self.hash = hash;
+        self
     }
     /// Set number of threads to use for scanning
     ///
