@@ -19,7 +19,11 @@ final_hash=$({
                 echo "  $file s $(readlink "$dir/$file")"
             elif [ -f "$dir/$file" ]; then
                 size="$(stat "$dir/$file" --format %s)"
-                echo -n "  $file f $size"
+                if [ -x "$dir/$file" ]; then
+                    echo -n "  $file x $size"
+                else
+                    echo -n "  $file f $size"
+                fi
                 for ((i = 0; i < size; i += BLOCK_SIZE)); do
                     dd if="$dir/$file" skip=$((i / BLOCK_SIZE)) bs=$BLOCK_SIZE count=1 status=none | $HASH_CMD
                 done | cut -c1-$HASH_BYTES | tr '\n' ' ' | sed 's/ $//;s/^/ /'
