@@ -4,6 +4,25 @@ Directory Signature File Format v1
 
 The format is a text file with ascii-only characters.
 
+Limitations of the current format:
+
+* Only stores executable bit for files, no permissions and ownership
+  support (this also means files can be replicated without privileges)
+* File modification times are not checked and not replicated
+* It's ascii text, so potentially 2x larger than what binary file could be
+
+While these limitations are not enough for generic backup purposes they
+are fine for deploying configs and read-only images to production servers
+in 99% use cases. Latter was a primary use case for the library. We will
+probably make a more featureful format as v2 and later as deemed necessary.
+
+Design of the format features the following things:
+
+* Reproducible (does not depend on order of file scan or phase of the moon)
+* Easy to check even using a bash script (sans edge cases)
+* Usable for file synchonization
+* Can be produced and checked without loading full index into memory
+
 
 Header
 ======
