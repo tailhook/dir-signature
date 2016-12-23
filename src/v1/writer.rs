@@ -3,6 +3,7 @@ use std::io::{self, Write};
 use std::sync::Arc;
 use std::path::Path;
 use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::PermissionsExt;
 
 
 use sha2::Digest;
@@ -12,7 +13,9 @@ use error::Error::{self, WriteError as EWrite, ReadFile as EFile};
 use super::hash::Hash;
 
 
-pub struct Name<'a>(&'a Path);
+struct Name<'a>(&'a Path);
+
+const EXE_MASK: u32 = 0o100;
 
 
 pub trait Writer {
@@ -45,8 +48,9 @@ impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
         let mut f = dir.open_file(&entry).map_err(EFile)?;
         let meta = f.metadata().map_err(EFile)?;
         let mut n = meta.len();
-        write!(&mut self.file, "  {} f {}",
+        write!(&mut self.file, "  {} {} {}",
             Name(&Path::new(entry.file_name())),
+            if meta.permissions().mode() & EXE_MASK > 0 { "x" } else { "f" },
             n,
         ).map_err(EWrite)?;
         while n > 0 {
