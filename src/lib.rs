@@ -54,4 +54,5 @@ pub struct ScannerConfig {
     hash: HashType,
     block_size: u64,
     dirs: Vec<(PathBuf, PathBuf)>,
+    print_progress: bool,
 }

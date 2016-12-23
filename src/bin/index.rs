@@ -10,7 +10,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-use argparse::{ArgumentParser, List, ParseOption, Store};
+use argparse::{ArgumentParser, List, ParseOption, Store, StoreTrue, StoreFalse};
 
 use dir_signature::{v1, ScannerConfig, HashType};
 
@@ -25,6 +25,7 @@ pub fn run() -> i32 {
     let mut threads = num_cpus::get();
     let mut dirs = Vec::<String>::new();
     let mut hash_type = HashType::Sha512_256;
+    let mut progress = true;
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("
@@ -40,6 +41,11 @@ pub fn run() -> i32 {
             .add_option(&["-o", "--write-index"], ParseOption,
                 "The file to write index to")
             .metavar("PATH");
+        ap.refer(&mut progress)
+            .add_option(&["-q", "--no-progress"], StoreFalse,
+                "Do not output progress or anything except errors")
+            .add_option(&["--progress"], StoreTrue,
+                "Show progress (default)");
         ap.refer(&mut hash_type)
             .add_option(&["--hash"], Store,
                 "Use specified hasher.
@@ -59,6 +65,9 @@ pub fn run() -> i32 {
     let mut cfg = ScannerConfig::new();
     cfg.threads(threads);
     cfg.hash(hash_type);
+    if progress {
+        cfg.print_progress();
+    }
     for dir in dirs.iter() {
         let mut seq = dir.splitn(1, ':');
         let (prefix, path) = match (seq.next().unwrap(), seq.next()) {

@@ -15,6 +15,7 @@ impl ScannerConfig {
             hash: HashType::Sha512_256,
             block_size: 32768,
             dirs: Vec::new(),
+            print_progress: false,
         }
     }
     /// Use different hash type
@@ -49,6 +50,11 @@ impl ScannerConfig {
     {
         self.dirs.push((path.as_ref().to_path_buf(),
                         prefix.as_ref().to_path_buf()));
+        self
+    }
+    /// Enable printing progress to stderr
+    pub fn print_progress(&mut self) -> &mut Self {
+        self.print_progress = true;
         self
     }
 }
