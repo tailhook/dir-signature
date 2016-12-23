@@ -68,6 +68,10 @@ pub fn run() -> i32 {
     if progress {
         cfg.print_progress();
     }
+    if dirs.len() > 1 {
+        warn!("Using more than one source dir is not recommended as it's \
+               not implemented properly yet");
+    }
     for dir in dirs.iter() {
         let mut seq = dir.splitn(1, ':');
         let (prefix, path) = match (seq.next().unwrap(), seq.next()) {
