@@ -1,6 +1,8 @@
+use std::fmt;
 use std::io::{self, Write};
 use std::sync::Arc;
 use std::path::Path;
+use std::os::unix::ffi::OsStrExt;
 
 
 use sha2::Digest;
@@ -8,6 +10,10 @@ use openat::{Dir, Entry};
 
 use error::Error::{self, WriteError as EWrite, ReadFile as EFile};
 use super::hash::Hash;
+
+
+pub struct Name<'a>(&'a Path);
+
 
 pub trait Writer {
     fn start_dir(&mut self, path: &Path) -> Result<(), Error>;
@@ -30,10 +36,7 @@ pub struct SyncWriter<F, H: Hash> {
 
 impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
     fn start_dir(&mut self, path: &Path) -> Result<(), Error> {
-        writeln!(&mut self.file, "{}",
-            // TODO(tailhook) excape path
-            path.display()
-        ).map_err(EWrite)?;
+        writeln!(&mut self.file, "{}", Name(path)).map_err(EWrite)?;
         Ok(())
     }
     fn add_file(&mut self, dir: &Arc<Dir>, entry: Entry)
@@ -43,8 +46,7 @@ impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
         let meta = f.metadata().map_err(EFile)?;
         let mut n = meta.len();
         write!(&mut self.file, "  {} f {}",
-            // TODO(tailhook) escape correctly
-            Path::new(entry.file_name()).display(),
+            Name(&Path::new(entry.file_name())),
             n,
         ).map_err(EWrite)?;
         while n > 0 {
@@ -61,10 +63,8 @@ impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
     {
         let dest = dir.read_link(&entry).map_err(EFile)?;
         write!(&mut self.file, "  {} s {}\n",
-            // TODO(tailhook) escape correctly
-            Path::new(entry.file_name()).display(),
-            // TODO(tailhook) escape correctly
-            dest.display(),
+            Name(&Path::new(entry.file_name())),
+            Name(&dest),
         ).map_err(EWrite)?;
         Ok(())
     }
@@ -101,5 +101,20 @@ impl<F: io::Write, H: Digest> io::Write for HashWriter<F, H> {
     }
     fn flush(&mut self) -> io::Result<()> {
         self.file.flush()
+    }
+}
+
+impl<'a> fmt::Display for Name<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use std::fmt::Write;
+
+        for &b in self.0.as_os_str().as_bytes() {
+            if b <= 0x20 || b >= 0x7F {
+                write!(f, "\\x{:02x}", b)?;
+            } else {
+                f.write_char(b as char)?;
+            }
+        }
+        Ok(())
     }
 }
