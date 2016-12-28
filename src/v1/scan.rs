@@ -16,7 +16,6 @@ fn find_roots(config: &ScannerConfig)
     let mut root = Vec::new();
     for &(ref path, ref prefix) in &config.dirs {
         if prefix == Path::new("/") {
-            let path: &Path = path;  // TODO(tailhook until openat() updated
             root.push((
                 Arc::new(Dir::open(path).map_err(EDir)?),
                 PathBuf::from("."),
@@ -42,8 +41,7 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
         let mut subdirs = Vec::new();
         let mut files = Vec::new();
         for (base, name) in dirs {
-            let namepath: &Path = &name; // TODO(tailhook) fix me
-            let dir = Arc::new(base.sub_dir(namepath).map_err(EList)?);
+            let dir = Arc::new(base.sub_dir(&name).map_err(EList)?);
             for entry in dir.list_dir(".").map_err(EList)? {
                 let entry = entry.map_err(EList)?;
                 let typ = match entry.simple_type() {
@@ -54,9 +52,12 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
                     T::Dir => subdirs.push((dir.clone(), entry)),
                     T::Symlink | T::File => files.push((dir.clone(), entry)),
                     T::Other => {
+                        let base = dir.recover_path()
+                            // if recover fails, use destination path
+                            // this is better than nothing anyway
+                            .unwrap_or(path.clone());
                         warn!("File {:?} has unknown type, ignoring",
-                            // TODO(tailhook) show source file, not dest?
-                            path.join(entry.file_name()));
+                            base.join(entry.file_name()));
                     }
                 }
             }
