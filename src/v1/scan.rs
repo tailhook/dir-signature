@@ -6,7 +6,7 @@ use openat::Dir;
 use itertools::Itertools;
 
 use {ScannerConfig, Error};
-use Error::{OpenDir as EDir, ListDir as EList};
+use Error::{OpenDir as EDir, ListDir as EList, ReadFile as ERead};
 use super::writer::Writer;
 
 
@@ -46,7 +46,7 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
                 let entry = entry.map_err(EList)?;
                 let typ = match entry.simple_type() {
                     Some(x) => x,
-                    None => unimplemented!(),  // implement Dir::stat ?
+                    None => dir.metadata(&entry).map_err(ERead)?.simple_type(),
                 };
                 match typ {
                     T::Dir => subdirs.push((dir.clone(), entry)),
