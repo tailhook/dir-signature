@@ -1,3 +1,5 @@
 /.vagga
 Cargo.lock
 /target
+/benches/ubuntu-xenial.v1.idx
+/ubuntu-xenial

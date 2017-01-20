@@ -28,3 +28,6 @@ ignore = "0.1.6"
 num_cpus = "1.2.0"
 itertools = "0.5.8"
 difference = "0.4.1"
+
+[dev-dependencies]
+matches = "0.1.4"

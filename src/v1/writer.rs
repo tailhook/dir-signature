@@ -17,6 +17,9 @@ struct Name<'a>(&'a Path);
 
 const EXE_MASK: u32 = 0o100;
 
+pub const MAGIC: &'static str = "DIRSIGNATURE";
+pub const VERSION: &'static str = "v1";
+
 
 pub trait Writer {
     fn start_dir(&mut self, path: &Path) -> Result<(), Error>;
@@ -85,7 +88,9 @@ impl<F: io::Write, H: Hash> SyncWriter<F, H> {
         -> Result<SyncWriter<F, H>, Error>
     {
         writeln!(&mut f,
-            "DIRSIGNATURE.v1 {} block_size={}",
+            "{}.{} {} block_size={}",
+            MAGIC,
+            VERSION,
             hash.name(),
             block_size,
         ).map_err(EWrite)?;

@@ -34,6 +34,12 @@ extern crate itertools;
 #[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
 
+#[cfg(test)]
+#[macro_use] extern crate matches;
+#[cfg(test)]
+extern crate rustc_serialize;
+
+
 pub mod v1;
 mod error;
 mod config;
