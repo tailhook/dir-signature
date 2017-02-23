@@ -73,9 +73,10 @@ The rules are:
   appropriate umask or use mode ``755`` when created
 * All fields in file entries are space-separated
 * In file (and directory) names all control characters, non-ascii,
-  non-printable characters and space are escaped using hex escapes (e.g. space
-  is ``\x20``), unicode characters are first serialized to utf-8 then escaped
-  (specifically all chars with code <= 0x20 and >= 0x7F are escaped)
+  non-printable characters, space and backslash are escaped using hex escapes
+  (e.g. space is ``\x20``), unicode characters are first serialized to utf-8
+  then escaped (specifically all chars with code <= 0x20 and >= 0x7F,
+  and == 0x5c are escaped)
 * Line-endings are always ``\n``
 * Directory paths are sorted as utf-8-encoded binary strings
 * File names are sorted locally inside the directory as utf-8-encoded binary

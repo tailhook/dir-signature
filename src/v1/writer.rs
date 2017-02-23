@@ -113,7 +113,7 @@ impl<'a> fmt::Display for Name<'a> {
         use std::fmt::Write;
 
         for &b in self.0.as_os_str().as_bytes() {
-            if b <= 0x20 || b >= 0x7F {
+            if b <= 0x20 || b >= 0x7F || b == b'\\' {
                 write!(f, "\\x{:02x}", b)?;
             } else {
                 f.write_char(b as char)?;
@@ -121,4 +121,12 @@ impl<'a> fmt::Display for Name<'a> {
         }
         Ok(())
     }
+}
+
+#[test]
+fn test_escapes() {
+    assert_eq!(&format!("{}", Name(Path::new("a\x05b"))),
+               r"a\x05b");
+    assert_eq!(&format!("{}", Name(Path::new("a\\x05b"))),
+               r"a\x5cx05b");
 }
