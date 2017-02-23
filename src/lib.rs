@@ -23,6 +23,7 @@
 //! * Can be produced and checked without loading full index into memory
 //!
 #![warn(missing_docs)]
+#![recursion_limit="100"]
 
 extern crate openat;
 extern crate sha2;

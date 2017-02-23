@@ -15,8 +15,8 @@ commands:
     container: ubuntu
     run: [cargo, test]
 
-  gen-ubuntu-idx: !Command
-    description: Generate index file for base ubuntu xenial image
+  gen-test-data: !Command
+    description: Generate index files used in benchmarks
     container: rust-nightly
     run: |
       set -ex

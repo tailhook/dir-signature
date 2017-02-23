@@ -11,6 +11,15 @@ pub enum HashType {
     Blake2b_256,
 }
 
+impl HashType {
+    /// Get the digest size in bytes
+    pub fn output_bytes(self) -> usize {
+        match self {
+            HashType::Sha512_256 | HashType::Blake2b_256 => 32,
+        }
+    }
+}
+
 impl FromStr for HashType {
     type Err = Error;
     fn from_str(val: &str) -> Result<HashType, Self::Err> {

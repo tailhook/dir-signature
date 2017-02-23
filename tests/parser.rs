@@ -8,7 +8,7 @@ use rustc_serialize::hex::FromHex;
 
 extern crate dir_signature;
 use dir_signature::HashType;
-use dir_signature::v1::{Entry, Parser, ParseError};
+use dir_signature::v1::{Entry, Parser, ParseError, ParseRowError};
 
 #[test]
 fn test_parser() {
@@ -44,9 +44,9 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
 
     let entry = entry_iter.next().unwrap().unwrap();
     match entry {
-        Entry::File(path, executable, size, hashes) => {
+        Entry::File {path, exe, size, hashes} => {
             assert_eq!(path, Path::new("/empty.txt"));
-            assert_eq!(executable, false);
+            assert_eq!(exe, false);
             assert_eq!(size, 0);
             assert!(hashes.iter().next().is_none());
         },
@@ -57,10 +57,10 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
 
     let entry = entry_iter.next().unwrap().unwrap();
     match entry {
-        Entry::File(path, executable, size, hashes) => {
+        Entry::File {path, exe, size, hashes} => {
             let mut hashes_iter = hashes.iter();
             assert_eq!(path, Path::new("/hello.txt"));
-            assert_eq!(executable, false);
+            assert_eq!(exe, false);
             assert_eq!(size, 6);
             assert_eq!(hashes_iter.next().unwrap(),
                 &"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc"
@@ -90,11 +90,11 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
 
 #[test]
 fn test_parser_invalid_header_signature() {
-    let content = "DIRSIGNATUR.v1 sha512/256 block_size=32768";
+    let content = "DIRSIGNATUR.v1 sha512/256 block_size=32768\n";
     let reader = BufReader::new(Cursor::new(&content[..]));
     match Parser::new(reader) {
-        Err(ParseError::Parse(msg, row_num)) => {
-            assert_eq!(msg,
+        Err(ParseError::Parse(ref err, row_num)) => {
+            assert_eq!(format!("{}", err),
                 "Invalid signature: expected \"DIRSIGNATURE\" but was \"DIRSIGNATUR\"");
             assert_eq!(row_num, 1);
         },
@@ -116,7 +116,7 @@ DIRSIGNATURE.v1 sha512/256 block_size=32768
     let mut parser = Parser::new(reader).unwrap();
     let entry_res = parser.iter().next();
     assert!(matches!(entry_res,
-            Some(Err(ParseError::Parse(ref msg, row_num)))
-            if msg.starts_with("Footer must be ended by a newline") && row_num == 2),
+            Some(Err(ParseError::Parse(ParseRowError::InvalidLine(ref msg), row_num)))
+            if msg.starts_with("Every line must end with a newline") && row_num == 2),
         "Entry result was: {:?}", entry_res);
 }

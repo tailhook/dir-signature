@@ -10,7 +10,8 @@ mod parser;
 use std::io;
 
 pub use error::Error;
-pub use self::parser::{Header, Entry, Parser, ParseError};
+pub use self::parser::{Hashes, Header, Entry, Parser};
+pub use self::parser::{ParseError, ParseRowError};
 
 use self::progress::Progress;
 use self::writer::SyncWriter;
