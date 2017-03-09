@@ -45,9 +45,11 @@ pub mod v1;
 mod error;
 mod config;
 mod hash_type;
+mod read;
 
 pub use error::Error;
 pub use hash_type::HashType;
+pub use read::get_hash;
 
 use std::path::PathBuf;
 
