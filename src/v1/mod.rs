@@ -1,5 +1,13 @@
 //! A module for working with version 1 of directory signature
 //!
+//!
+//! Entry points:
+//!
+//! * [`scan`](fn.scan.html) function for creating index file
+//! * [`Parser::new`](struct.Parser.html#method.new) for reading index file
+//!
+//! There is also global [`get_hash`](../fn.get_hash.html) for getting just
+//! checksum of an index file.
 
 mod writer;
 mod progress;
