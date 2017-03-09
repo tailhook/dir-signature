@@ -23,6 +23,7 @@
 //! * Can be produced and checked without loading full index into memory
 //!
 #![warn(missing_docs)]
+#![recursion_limit="100"]
 
 extern crate openat;
 extern crate sha2;
@@ -33,6 +34,12 @@ extern crate typenum;
 extern crate itertools;
 #[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
+
+#[cfg(test)]
+#[macro_use] extern crate matches;
+#[cfg(test)]
+extern crate rustc_serialize;
+
 
 pub mod v1;
 mod error;

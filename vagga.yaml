@@ -15,6 +15,30 @@ commands:
     container: ubuntu
     run: [cargo, test]
 
+  gen-test-data: !Command
+    description: Generate index files used in benchmarks
+    container: rust-nightly
+    run: |
+      set -ex
+      cd /work
+      if [ ! -f ubuntu-base-16.04.2-base-amd64.tar.gz ]; then
+        wget http://cdimage.ubuntu.com/ubuntu-base/releases/16.04/release/ubuntu-base-16.04.2-base-amd64.tar.gz \
+          -O ubuntu-base-16.04.2-base-amd64.tar.gz
+      fi
+      rm -rf ubuntu-xenial
+      mkdir -p ubuntu-xenial
+      tar -xzf ubuntu-base-16.04.2-base-amd64.tar.gz --exclude "dev/*" -C ubuntu-xenial
+      export HOME=/work/target
+      cargo build --release
+      /work/target/release/index --write-index benches/ubuntu-xenial.v1.idx /work/ubuntu-xenial
+      rm ubuntu-base-16.04.2-base-amd64.tar.gz
+      rm -r ubuntu-xenial
+
+  bench: !Command
+    description: Run benchmarks
+    container: rust-nightly
+    run: [cargo, bench]
+
 containers:
 
   ubuntu:
@@ -30,3 +54,16 @@ containers:
     environ:
       HOME: /work/target
       RUST_BACKTRACE: 1
+
+  rust-nightly:
+    environ:
+      HOME: /work/target
+      RUST_BACKTRACE: 1
+    setup:
+    - !Ubuntu xenial
+    - !Install [wget, build-essential]
+    - !TarInstall
+      url: https://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
+      script: |
+        ./install.sh --prefix=/usr \
+          --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo
