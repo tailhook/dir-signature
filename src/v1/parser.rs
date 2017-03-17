@@ -349,6 +349,7 @@ pub struct EntryIterator<'a, R: 'a + BufRead> {
     block_size: u64,
     current_dir: PathBuf,
     current_row_num: usize,
+    exhausted: bool,
 }
 
 impl<'a, R: BufRead> EntryIterator<'a, R> {
@@ -361,10 +362,14 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
             block_size: block_size,
             current_dir: PathBuf::new(),
             current_row_num: 1,
+            exhausted: false,
         }
     }
 
     fn parse_entry(&mut self) -> Result<Option<Entry>, ParseError> {
+        if self.exhausted {
+            return Ok(None);
+        }
         self.current_row_num += 1;
         let mut buf = vec!();
         read_line(self.reader.by_ref(), &mut buf)
@@ -384,6 +389,7 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
                             format!("Found extra lines after the footer")),
                         self.current_row_num));
                 }
+                self.exhausted = true;
                 Ok(None)
             },
             Some(entry) => {

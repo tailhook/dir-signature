@@ -85,7 +85,10 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
         }
     }
 
-    assert!(entry_iter.next().is_none());
+    let entry = entry_iter.next();
+    assert!(matches!(entry, None), "Was: {:?}", entry);
+    let entry = entry_iter.next();
+    assert!(matches!(entry, None), "Was: {:?}", entry);
 }
 
 #[test]
