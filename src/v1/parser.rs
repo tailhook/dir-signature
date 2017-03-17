@@ -597,7 +597,7 @@ mod test {
         let res = Header::parse(b"\xff");
         assert!(matches!(res,
                 Err(ParseRowError::InvalidHeader(ref msg))
-                if msg.starts_with("invalid utf-8:")),
+                if msg.starts_with("invalid utf-8")),
             "Result was: {:?}", res);
 
         let res = Header::parse(b"DIRSIGNATURE");
