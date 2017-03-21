@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 
 extern crate dir_signature;
 use dir_signature::HashType;
-use dir_signature::v1::{MergeError, MergedSignatures};
 use dir_signature::v1::{Advancing, Entry, Parser};
+use dir_signature::v1::merge::{MergeError, MergedSignatures};
 
 #[test]
 fn test_merger() {

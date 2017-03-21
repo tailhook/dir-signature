@@ -1,3 +1,13 @@
+//! A module for parsing multiple directory signature files
+//!
+//!
+//! Entry points:
+//!
+//! * [`FileMergeBuilder::new`](struct.FileMergeBuilder.html#method.new)
+//!   for opening files and building `MergedSignatures`
+//! * [`MergedSignatures::new`](struct.MergedSignatures.html#method.new)
+//!   for iterating over entries from multiple signature files
+
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader};
