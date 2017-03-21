@@ -2,7 +2,7 @@
 //!
 //! ## v1
 //!
-//! Currently whe have only implemented `v1` version of signature file,
+//! Currently we have only implemented `v1` version of signature file,
 //! it has the following limitations:
 //!
 //! * Only stores executable bit for files, no permissions and ownership
@@ -19,7 +19,7 @@
 //!
 //! * Reproducible (does not depend on order of file scan)
 //! * Easy to check even using a bash script (sans edge cases)
-//! * Usable for file synchonization
+//! * Usable for file synchronization
 //! * Can be produced and checked without loading full index into memory
 //!
 #![warn(missing_docs)]
