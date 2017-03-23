@@ -136,7 +136,7 @@ pub struct MergedEntriesIterator<'a, K: 'a, R: 'a + BufRead> {
 }
 
 impl<'a, K, R: BufRead> MergedEntriesIterator<'a, K, R> {
-    /// Advances all parsers and returns all proper entries
+    /// Advances all parsers and returns all matching entries
     pub fn advance<P: AsRef<Path>>(&mut self, to: &Advancing<P>)
         -> Vec<(&'a K, Result<Entry, ParseError>)>
     {

@@ -330,7 +330,7 @@ impl Entry {
         }
     }
 
-    /// Returns proper `Advancing` instance for the entry
+    /// Returns corresponding `Advancing` instance for the entry
     /// to pass into
     /// [`EntryIterator::advance`](struct.EntryIterator.html#method.advance)
     /// method
