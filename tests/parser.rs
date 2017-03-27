@@ -8,7 +8,7 @@ use rustc_serialize::hex::FromHex;
 
 extern crate dir_signature;
 use dir_signature::HashType;
-use dir_signature::v1::{Advancing, Entry, Parser, ParseError, ParseRowError};
+use dir_signature::v1::{Entry, EntryKind, Parser, ParseError, ParseRowError};
 
 #[test]
 fn test_parser() {
@@ -110,33 +110,33 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
     let mut signature_parser = Parser::new(reader).unwrap();
     let mut entry_iter = signature_parser.iter();
 
-    let entry = entry_iter.advance(&Advancing::File("/hello.txt"));
+    let entry = entry_iter.advance(&EntryKind::File("/hello.txt"));
     assert!(matches!(entry,
             Some(Ok(Entry::File {ref path, exe, size, ..}))
             if path == Path::new("/hello.txt") && !exe && size == 6),
         "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File("/hello.txt"));
+    let entry = entry_iter.advance(&EntryKind::File("/hello.txt"));
     assert!(matches!(entry, None), "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File("/subdir"));
+    let entry = entry_iter.advance(&EntryKind::File("/subdir"));
     assert!(matches!(entry, None), "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::Dir("/empty"));
+    let entry = entry_iter.advance(&EntryKind::Dir("/empty"));
     assert!(matches!(entry,
             Some(Ok(Entry::Dir(ref path))) if path == Path::new("/empty")),
         "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File("/subdir/.hidden"));
+    let entry = entry_iter.advance(&EntryKind::File("/subdir/.hidden"));
     assert!(matches!(entry,
             Some(Ok(Entry::File {ref path, exe, size, ..}))
             if path == Path::new("/subdir/.hidden") && !exe && size == 28394),
             "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File("/subdir/just"));
+    let entry = entry_iter.advance(&EntryKind::File("/subdir/just"));
     assert!(matches!(entry, None), "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File("/subdir/just link"));
+    let entry = entry_iter.advance(&EntryKind::File("/subdir/just link"));
     assert!(matches!(entry,
             Some(Ok(Entry::Link(ref path, ref dest)))
             if path == Path::new("/subdir/just link") &&
                 dest == Path::new("../hello.txt")),
         "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File("/zzz"));
+    let entry = entry_iter.advance(&EntryKind::File("/zzz"));
     assert!(matches!(entry, None), "Entry was: {:?}", entry);
 }
 
@@ -161,31 +161,31 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
     let mut signature_parser = Parser::new(reader).unwrap();
     let mut entry_iter = signature_parser.iter();
 
-    let entry = entry_iter.advance(&Advancing::Dir(Path::new("/etc")));
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/etc")));
     assert!(matches!(entry,
             Some(Ok(Entry::Dir(ref path)))
             if path == Path::new("/etc")),
         "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::Dir(Path::new("/etc")));
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/etc")));
     assert!(matches!(entry, None), "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File(Path::new("/etc/hosts")));
+    let entry = entry_iter.advance(&EntryKind::File(Path::new("/etc/hosts")));
     assert!(matches!(entry,
             Some(Ok(Entry::File{ref path, ..}))
             if path == Path::new("/etc/hosts")),
         "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::Dir(Path::new("/usr/share")));
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/usr/share")));
     assert!(matches!(entry,
             Some(Ok(Entry::Dir(ref path)))
             if path == Path::new("/usr/share")),
         "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::Dir(Path::new("/usr/bin")));
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/usr/bin")));
     assert!(matches!(entry, None), "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::File(Path::new("/usr/share/test")));
+    let entry = entry_iter.advance(&EntryKind::File(Path::new("/usr/share/test")));
     assert!(matches!(entry,
             Some(Ok(Entry::File{ref path, ..}))
             if path == Path::new("/usr/share/test")),
         "Entry was: {:?}", entry);
-    let entry = entry_iter.advance(&Advancing::Dir(Path::new("/var")));
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/var")));
     assert!(matches!(entry,
             Some(Ok(Entry::Dir(ref path)))
             if path == Path::new("/var")),

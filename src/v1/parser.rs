@@ -124,12 +124,12 @@ quick_error! {
     }
 }
 
-/// Represents any entry inside the signature file to which we want to advance
+/// Represents a type of the entry inside a signature file
 #[derive(Debug)]
-pub enum Advancing<P: AsRef<Path>> {
-    /// A directory inside the signature file
+pub enum EntryKind<P: AsRef<Path>> {
+    /// A directory
     Dir(P),
-    /// A file inside the signature file
+    /// A file or a symbolic link
     File(P),
 }
 
@@ -330,15 +330,14 @@ impl Entry {
         }
     }
 
-    /// Returns corresponding `Advancing` instance for the entry
-    /// to pass into
+    /// Returns kind of the entry. Can be passed into
     /// [`EntryIterator::advance`](struct.EntryIterator.html#method.advance)
     /// method
-    pub fn advancing(&self) -> Advancing<PathBuf> {
+    pub fn kind(&self) -> EntryKind<PathBuf> {
         match *self {
-            Entry::Dir(ref path) => Advancing::Dir(path.clone()),
+            Entry::Dir(ref path) => EntryKind::Dir(path.clone()),
             Entry::File{ref path, ..} |
-            Entry::Link(ref path, _) => Advancing::File(path.clone()),
+            Entry::Link(ref path, _) => EntryKind::File(path.clone()),
         }
     }
 }
@@ -441,14 +440,14 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
     /// stops at the first entry that greater than advance path and
     /// returns `None`.
     /// Returns `None` if wanted path locates before the current entry.
-    pub fn advance<P: AsRef<Path>>(&mut self, advancing: &Advancing<P>)
+    pub fn advance<P: AsRef<Path>>(&mut self, kind: &EntryKind<P>)
         -> Option<Result<Entry, ParseError>>
     {
-        match *advancing {
-            Advancing::File(ref path) => {
+        match *kind {
+            EntryKind::File(ref path) => {
                 self.advance_to_file(path.as_ref())
             },
-            Advancing::Dir(ref path) => {
+            EntryKind::Dir(ref path) => {
                 self.advance_to_dir(path.as_ref())
             },
         }

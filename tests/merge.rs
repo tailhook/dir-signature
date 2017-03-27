@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 extern crate dir_signature;
 use dir_signature::HashType;
-use dir_signature::v1::{Advancing, Entry, Parser};
+use dir_signature::v1::{Entry, EntryKind, Parser};
 use dir_signature::v1::merge::{MergeError, MergedSignatures};
 
 #[test]
@@ -44,7 +44,7 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
     let mut merger = MergedSignatures::new(parsers).unwrap();
     let mut merged_iter = merger.iter();
 
-    let entries = merged_iter.advance(&Advancing::File("/empty.txt"));
+    let entries = merged_iter.advance(&EntryKind::File("/empty.txt"));
     assert_eq!(entries.len(), 2);
     let ref entry = entries[0];
     assert!(matches!(entry, &(base_path, Ok(Entry::File{ref path, exe, size, ..}))
@@ -59,7 +59,7 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
                 !exe && size == 0),
         "Was: {:?}", entry);
 
-    let entries = merged_iter.advance(&Advancing::File("/z.txt"));
+    let entries = merged_iter.advance(&EntryKind::File("/z.txt"));
     assert_eq!(entries.len(), 0);
 }
 

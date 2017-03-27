@@ -14,7 +14,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use ::HashType;
-use super::{Entry, Advancing, Parser, ParseError};
+use super::{Entry, EntryKind, Parser, ParseError};
 use super::parser::EntryIterator;
 
 quick_error! {
@@ -137,7 +137,7 @@ pub struct MergedEntriesIterator<'a, K: 'a, R: 'a + BufRead> {
 
 impl<'a, K, R: BufRead> MergedEntriesIterator<'a, K, R> {
     /// Advances all parsers and returns all matching entries
-    pub fn advance<P: AsRef<Path>>(&mut self, to: &Advancing<P>)
+    pub fn advance<P: AsRef<Path>>(&mut self, to: &EntryKind<P>)
         -> Vec<(&'a K, Result<Entry, ParseError>)>
     {
         let mut entries = vec!();
