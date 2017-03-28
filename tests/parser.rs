@@ -141,6 +141,58 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
 }
 
 #[test]
+fn test_parser_advance_current_path_is_greater_than_wanted_file_dir() {
+    let content = b"\
+DIRSIGNATURE.v1 sha512/256 block_size=32768
+/
+/etc
+  zzz f 0
+/etc/z
+  a f 0
+0000000000000000000000000000000000000000000000000000000000000000
+";
+    let reader = BufReader::new(Cursor::new(&content[..]));
+    let mut signature_parser = Parser::new(reader).unwrap();
+    let mut entry_iter = signature_parser.iter();
+
+    let entry = entry_iter.advance(&EntryKind::File("/etc/z/a"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, ..}))
+            if path == Path::new("/etc/z/a")),
+        "Entry was: {:?}", entry);
+}
+
+#[test]
+fn test_parser_advance_current_path_is_less_than_wanted_file_dir() {
+    let content = b"\
+    DIRSIGNATURE.v1 sha512/256 block_size=32768
+/
+/etc
+  zzz f 0
+/etc/z
+  a f 0
+  b f 0
+0000000000000000000000000000000000000000000000000000000000000000
+";
+    let reader = BufReader::new(Cursor::new(&content[..]));
+    let mut signature_parser = Parser::new(reader).unwrap();
+    let mut entry_iter = signature_parser.iter();
+
+    let entry = entry_iter.advance(&EntryKind::File("/etc/z/a"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, ..}))
+            if path == Path::new("/etc/z/a")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/etc/zzz"));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/etc/z/b"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, ..}))
+            if path == Path::new("/etc/z/b")),
+        "Entry was: {:?}", entry);
+}
+
+#[test]
 fn test_parser_advance_dir() {
     let content = b"\
 DIRSIGNATURE.v1 sha512/256 block_size=32768

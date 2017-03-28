@@ -464,15 +464,18 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
         loop {
             match self.parse_entry() {
                 Ok(Some(entry)) => {
-                    if let Entry::Dir(..) = entry {
-                        if self.current_dir <= dir {
+                    match self.current_dir.as_path().cmp(dir) {
+                        Ordering::Less => {
                             self.current_row.clear();
                             continue;
-                        } else {
+                        },
+                        Ordering::Greater => {
                             return None;
-                        }
+                        },
+                        Ordering::Equal => {},
                     }
-                    match entry.get_path().cmp(path) {
+                    let current_path = entry.get_path().to_path_buf();
+                    match current_path.as_path().cmp(path) {
                         Ordering::Less => {
                             self.current_row.clear();
                             continue;

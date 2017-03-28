@@ -143,7 +143,7 @@ impl<'a, K, R: BufRead> MergedEntriesIterator<'a, K, R> {
         let mut entries = vec!();
         for &mut (key, ref mut iterator) in self.merged_entries.iter_mut() {
             if let Some(entry) = iterator.advance(to) {
-                 entries.push((key, entry));
+                entries.push((key, entry));
             }
         }
         entries
