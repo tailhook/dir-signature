@@ -8,7 +8,7 @@ use rustc_serialize::hex::FromHex;
 
 extern crate dir_signature;
 use dir_signature::HashType;
-use dir_signature::v1::{Entry, Parser, ParseError, ParseRowError};
+use dir_signature::v1::{Entry, EntryKind, Parser, ParseError, ParseRowError};
 
 #[test]
 fn test_parser() {
@@ -85,7 +85,166 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
         }
     }
 
-    assert!(entry_iter.next().is_none());
+    let entry = entry_iter.next();
+    assert!(matches!(entry, None), "Was: {:?}", entry);
+    let entry = entry_iter.next();
+    assert!(matches!(entry, None), "Was: {:?}", entry);
+}
+
+#[test]
+fn test_parser_advance_file() {
+    let content = b"\
+DIRSIGNATURE.v1 sha512/256 block_size=32768
+/
+  empty.txt f 0
+  hello.txt f 6 8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc
+/empty
+/full
+  test.txt f 0
+/subdir
+  .hidden f 28394 24f72d3a930b5f7933ddd91a5c7cb7ba09a093f936a04bf6486c8b1763c59819
+  just\\x20link s ../hello.txt
+c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
+";
+    let reader = BufReader::new(Cursor::new(&content[..]));
+    let mut signature_parser = Parser::new(reader).unwrap();
+    let mut entry_iter = signature_parser.iter();
+
+    let entry = entry_iter.advance(&EntryKind::File("/hello.txt"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, exe, size, ..}))
+            if path == Path::new("/hello.txt") && !exe && size == 6),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/hello.txt"));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/subdir"));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::Dir("/empty"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::Dir(ref path))) if path == Path::new("/empty")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/subdir/.hidden"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, exe, size, ..}))
+            if path == Path::new("/subdir/.hidden") && !exe && size == 28394),
+            "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/subdir/just"));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/subdir/just link"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::Link(ref path, ref dest)))
+            if path == Path::new("/subdir/just link") &&
+                dest == Path::new("../hello.txt")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/zzz"));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+}
+
+#[test]
+fn test_parser_advance_current_path_is_greater_than_wanted_file_dir() {
+    let content = b"\
+DIRSIGNATURE.v1 sha512/256 block_size=32768
+/
+/etc
+  zzz f 0
+/etc/z
+  a f 0
+0000000000000000000000000000000000000000000000000000000000000000
+";
+    let reader = BufReader::new(Cursor::new(&content[..]));
+    let mut signature_parser = Parser::new(reader).unwrap();
+    let mut entry_iter = signature_parser.iter();
+
+    let entry = entry_iter.advance(&EntryKind::File("/etc/z/a"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, ..}))
+            if path == Path::new("/etc/z/a")),
+        "Entry was: {:?}", entry);
+}
+
+#[test]
+fn test_parser_advance_current_path_is_less_than_wanted_file_dir() {
+    let content = b"\
+    DIRSIGNATURE.v1 sha512/256 block_size=32768
+/
+/etc
+  zzz f 0
+/etc/z
+  a f 0
+  b f 0
+0000000000000000000000000000000000000000000000000000000000000000
+";
+    let reader = BufReader::new(Cursor::new(&content[..]));
+    let mut signature_parser = Parser::new(reader).unwrap();
+    let mut entry_iter = signature_parser.iter();
+
+    let entry = entry_iter.advance(&EntryKind::File("/etc/z/a"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, ..}))
+            if path == Path::new("/etc/z/a")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/etc/zzz"));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File("/etc/z/b"));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File {ref path, ..}))
+            if path == Path::new("/etc/z/b")),
+        "Entry was: {:?}", entry);
+}
+
+#[test]
+fn test_parser_advance_dir() {
+    let content = b"\
+DIRSIGNATURE.v1 sha512/256 block_size=32768
+/
+  empty.txt f 0
+/bin
+/dev
+/etc
+  hosts f 0
+/usr
+/usr/bin
+/usr/share
+  test f 0
+/var
+c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
+";
+    let reader = BufReader::new(Cursor::new(&content[..]));
+    let mut signature_parser = Parser::new(reader).unwrap();
+    let mut entry_iter = signature_parser.iter();
+
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/etc")));
+    assert!(matches!(entry,
+            Some(Ok(Entry::Dir(ref path)))
+            if path == Path::new("/etc")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/etc")));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File(Path::new("/etc/hosts")));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File{ref path, ..}))
+            if path == Path::new("/etc/hosts")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/usr/share")));
+    assert!(matches!(entry,
+            Some(Ok(Entry::Dir(ref path)))
+            if path == Path::new("/usr/share")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/usr/bin")));
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::File(Path::new("/usr/share/test")));
+    assert!(matches!(entry,
+            Some(Ok(Entry::File{ref path, ..}))
+            if path == Path::new("/usr/share/test")),
+        "Entry was: {:?}", entry);
+    let entry = entry_iter.advance(&EntryKind::Dir(Path::new("/var")));
+    assert!(matches!(entry,
+            Some(Ok(Entry::Dir(ref path)))
+            if path == Path::new("/var")),
+        "Entry was: {:?}", entry);
+
+    let entry = entry_iter.next();
+    assert!(matches!(entry, None), "Entry was: {:?}", entry);
 }
 
 #[test]

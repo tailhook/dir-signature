@@ -14,11 +14,12 @@ mod progress;
 mod hash;
 mod scan;
 mod parser;
+pub mod merge;
 
 use std::io;
 
 pub use error::Error;
-pub use self::parser::{Hashes, Header, Entry, Parser};
+pub use self::parser::{Hashes, Header, Entry, EntryKind, Parser, EntryIterator};
 pub use self::parser::{ParseError, ParseRowError};
 
 use self::progress::Progress;

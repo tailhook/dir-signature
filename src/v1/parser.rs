@@ -1,5 +1,6 @@
 use std;
 use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::convert::From;
 use std::ffi::{OsStr, OsString};
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
@@ -121,6 +122,15 @@ quick_error! {
                 -> (err, row_num)
         }
     }
+}
+
+/// Represents a type of the entry inside a signature file
+#[derive(Debug)]
+pub enum EntryKind<P: AsRef<Path>> {
+    /// A directory
+    Dir(P),
+    /// A file or a symbolic link
+    File(P),
 }
 
 /// Represents header of the dir signature file
@@ -310,6 +320,26 @@ impl Entry {
         }
         Ok(Some(entry))
     }
+
+    /// Get path of the entry
+    pub fn get_path(&self) -> &Path {
+        match *self {
+            Entry::Dir(ref path) |
+            Entry::File{ref path, ..} |
+            Entry::Link(ref path, _) => path
+        }
+    }
+
+    /// Returns kind of the entry. Can be passed into
+    /// [`EntryIterator::advance`](struct.EntryIterator.html#method.advance)
+    /// method
+    pub fn kind(&self) -> EntryKind<PathBuf> {
+        match *self {
+            Entry::Dir(ref path) => EntryKind::Dir(path.clone()),
+            Entry::File{ref path, ..} |
+            Entry::Link(ref path, _) => EntryKind::File(path.clone()),
+        }
+    }
 }
 
 /// v1 format parser
@@ -343,12 +373,15 @@ impl<R: BufRead> Parser<R> {
     }
 }
 
+/// Iterator over the entries of the signature file
 pub struct EntryIterator<'a, R: 'a + BufRead> {
     reader: &'a mut R,
     hash_type: HashType,
     block_size: u64,
-    current_dir: PathBuf,
+    current_row: Vec<u8>,
     current_row_num: usize,
+    current_dir: PathBuf,
+    exhausted: bool,
 }
 
 impl<'a, R: BufRead> EntryIterator<'a, R> {
@@ -359,17 +392,23 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
             reader: reader.by_ref(),
             hash_type: hash_type,
             block_size: block_size,
-            current_dir: PathBuf::new(),
+            current_row: vec!(),
             current_row_num: 1,
+            current_dir: PathBuf::new(),
+            exhausted: false,
         }
     }
 
     fn parse_entry(&mut self) -> Result<Option<Entry>, ParseError> {
+        if self.exhausted {
+            return Ok(None);
+        }
         self.current_row_num += 1;
-        let mut buf = vec!();
-        read_line(self.reader.by_ref(), &mut buf)
-            .context(self.current_row_num)?;
-        let row = &buf[..];
+        if self.current_row.is_empty() {
+            read_line(self.reader.by_ref(), &mut self.current_row)
+                .context(self.current_row_num)?;
+        }
+        let row = &self.current_row[..];
         let entry = Entry::parse(
                 row, &self.current_dir, self.hash_type, self.block_size)
             .context(self.current_row_num)?;
@@ -384,6 +423,7 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
                             format!("Found extra lines after the footer")),
                         self.current_row_num));
                 }
+                self.exhausted = true;
                 Ok(None)
             },
             Some(entry) => {
@@ -394,17 +434,115 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
             },
         }
     }
+
+    /// Advances to the entry beyond the current whose path is equal to
+    /// wanted path. If there is no such entry in the signature file,
+    /// stops at the first entry that greater than advance path and
+    /// returns `None`.
+    /// Returns `None` if wanted path locates before the current entry.
+    pub fn advance<P: AsRef<Path>>(&mut self, kind: &EntryKind<P>)
+        -> Option<Result<Entry, ParseError>>
+    {
+        match *kind {
+            EntryKind::File(ref path) => {
+                self.advance_to_file(path.as_ref())
+            },
+            EntryKind::Dir(ref path) => {
+                self.advance_to_dir(path.as_ref())
+            },
+        }
+    }
+
+    fn advance_to_file(&mut self, path: &Path)
+        -> Option<Result<Entry, ParseError>>
+    {
+        let dir = if let Some(dir) = path.parent() {
+            dir
+        } else {
+            return None;
+        };
+        loop {
+            match self.parse_entry() {
+                Ok(Some(entry)) => {
+                    match self.current_dir.as_path().cmp(dir) {
+                        Ordering::Less => {
+                            self.current_row.clear();
+                            continue;
+                        },
+                        Ordering::Greater => {
+                            return None;
+                        },
+                        Ordering::Equal => {},
+                    }
+                    let current_path = entry.get_path().to_path_buf();
+                    match current_path.as_path().cmp(path) {
+                        Ordering::Less => {
+                            self.current_row.clear();
+                            continue;
+                        },
+                        Ordering::Equal => {
+                            self.current_row.clear();
+                            return Some(Ok(entry));
+                        },
+                        Ordering::Greater => {
+                            return None;
+                        },
+                    }
+                },
+                Ok(None) => return None,
+                Err(e) => return Some(Err(e)),
+            }
+        }
+    }
+
+    fn advance_to_dir(&mut self, path: &Path)
+        -> Option<Result<Entry, ParseError>>
+    {
+        loop {
+            match self.parse_entry() {
+                Ok(Some(entry)) => {
+                    if let Entry::File{..} = entry {
+                        if self.current_dir < path {
+                            self.current_row.clear();
+                            continue;
+                        } else {
+                            return None;
+                        }
+                    }
+                    if let Entry::Dir(..) = entry {
+                        match self.current_dir.as_path().cmp(path) {
+                            Ordering::Less => {
+                                self.current_row.clear();
+                                continue;
+                            },
+                            Ordering::Equal => {
+                                self.current_row.clear();
+                                return Some(Ok(entry));
+                            },
+                            Ordering::Greater => {
+                                return None;
+                            },
+                        }
+                    }
+                },
+                Ok(None) => return None,
+                Err(e) => return Some(Err(e)),
+            }
+        }
+    }
 }
 
 impl<'a, R: BufRead> Iterator for EntryIterator<'a, R> {
     type Item = Result<Entry, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.parse_entry() {
+        let res = match self.parse_entry() {
             Ok(Some(entry)) => Some(Ok(entry)),
             Ok(None) => None,
             Err(e) => Some(Err(e)),
-        }
+        };
+        self.current_row.clear();
+        res
     }
 }
 
@@ -597,7 +735,7 @@ mod test {
         let res = Header::parse(b"\xff");
         assert!(matches!(res,
                 Err(ParseRowError::InvalidHeader(ref msg))
-                if msg.starts_with("invalid utf-8:")),
+                if msg.starts_with("invalid utf-8")),
             "Result was: {:?}", res);
 
         let res = Header::parse(b"DIRSIGNATURE");
