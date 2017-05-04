@@ -261,7 +261,7 @@ impl Hashes {
 }
 
 /// Represents an entry from dir signature file
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Entry {
     /// Direcory
     Dir(PathBuf),
