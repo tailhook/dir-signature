@@ -1,4 +1,4 @@
-use std::io::{BufReader, Cursor};
+use std::io::{BufReader, Cursor, Seek, SeekFrom};
 use std::path::Path;
 
 extern crate rustc_serialize;
@@ -278,4 +278,35 @@ DIRSIGNATURE.v1 sha512/256 block_size=32768
             Some(Err(ParseError::Parse(ParseRowError::InvalidLine(ref msg), row_num)))
             if msg.starts_with("Every line must end with a newline") && row_num == 2),
         "Entry result was: {:?}", entry_res);
+}
+
+#[test]
+fn test_parser_reset() {
+    let content = "\
+DIRSIGNATURE.v1 sha512/256 block_size=32768
+/
+8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc
+";
+    let reader = BufReader::new(Cursor::new(&content[..]));
+    let mut parser = Parser::new(reader).unwrap();
+
+    {
+        let mut entry_iter = parser.iter();
+        let entry = entry_iter.next();
+        assert!(matches!(entry,
+                Some(Ok(Entry::Dir(ref path))) if path == Path::new("/")),
+            "Entry result was: {:?}", entry);
+        let entry = entry_iter.next();
+        assert!(matches!(entry, None), "Entry result was: {:?}", entry);
+    }
+
+    let mut reader = parser.into_reader();
+    reader.seek(SeekFrom::Start(0)).unwrap();
+    let mut parser = Parser::new(reader).unwrap();
+
+    let mut entry_iter = parser.iter();
+    let entry = entry_iter.next();
+    assert!(matches!(entry,
+            Some(Ok(Entry::Dir(ref path))) if path == Path::new("/")),
+        "Entry result was: {:?}", entry);
 }

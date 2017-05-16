@@ -4,8 +4,7 @@ use std::cmp::Ordering;
 use std::convert::From;
 use std::ffi::{OsStr, OsString};
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
-use std::io;
-use std::io::BufRead;
+use std::io::{self, BufRead};
 use std::path::{Path, PathBuf};
 use std::slice::Chunks;
 use std::str::FromStr;
@@ -370,6 +369,28 @@ impl<R: BufRead> Parser<R> {
     pub fn iter(&mut self) -> EntryIterator<R> {
         EntryIterator::new(&mut self.reader,
             self.header.hash_type, self.header.block_size)
+    }
+
+    /// Consumes the parser returning ownership of the underlying reader
+    ///
+    /// It can be used to parse signature file again from the beginning:
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::io::{Seek, SeekFrom};
+    /// use dir_signature::v1::Parser;
+    /// # use std::io::{BufReader, Cursor};
+    /// # let content = "DIRSIGNATURE.v1 sha512/256 block_size=32768\n";
+    /// # let mut reader = BufReader::new(Cursor::new(&content[..]));
+    /// # let mut parser = Parser::new(reader).unwrap();
+    ///
+    /// let mut reader = parser.into_reader();
+    /// reader.seek(SeekFrom::Start(0)).unwrap();
+    /// let mut parser = Parser::new(reader).unwrap();
+    /// ```
+    pub fn into_reader(self) -> R {
+        self.reader
     }
 }
 
