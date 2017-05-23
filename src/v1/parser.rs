@@ -321,7 +321,7 @@ impl Entry {
     }
 
     /// Get path of the entry
-    pub fn get_path(&self) -> &Path {
+    pub fn path(&self) -> &Path {
         match *self {
             Entry::Dir(ref path) |
             Entry::File{ref path, ..} |
@@ -332,11 +332,11 @@ impl Entry {
     /// Returns kind of the entry. Can be passed into
     /// [`EntryIterator::advance`](struct.EntryIterator.html#method.advance)
     /// method
-    pub fn kind(&self) -> EntryKind<PathBuf> {
+    pub fn kind(&self) -> EntryKind<&Path> {
         match *self {
-            Entry::Dir(ref path) => EntryKind::Dir(path.clone()),
+            Entry::Dir(ref path) => EntryKind::Dir(path.as_ref()),
             Entry::File{ref path, ..} |
-            Entry::Link(ref path, _) => EntryKind::File(path.clone()),
+            Entry::Link(ref path, _) => EntryKind::File(path.as_ref()),
         }
     }
 }
@@ -495,7 +495,7 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
                         },
                         Ordering::Equal => {},
                     }
-                    let current_path = entry.get_path().to_path_buf();
+                    let current_path = entry.path().to_path_buf();
                     match current_path.as_path().cmp(path) {
                         Ordering::Less => {
                             self.current_row.clear();
