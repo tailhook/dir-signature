@@ -123,7 +123,10 @@ quick_error! {
     }
 }
 
-/// Represents a type of the entry inside a signature file
+/// Represents a type of the entry inside a signature file.
+///
+/// Entry kinds are ordered in a way they appear in a signature file.
+/// Thus `File("/b") < Dir("/a")`.
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntryKind<P: AsRef<Path>> {
     /// A directory
@@ -141,7 +144,7 @@ impl<P: AsRef<Path>> EntryKind<P> {
         }
     }
 
-    /// Converts to EntryKind<&Path>
+    /// Converts to `EntryKind<&Path>`
     pub fn as_ref(&self) -> EntryKind<&Path> {
         use self::EntryKind::*;
         match *self {
@@ -150,7 +153,7 @@ impl<P: AsRef<Path>> EntryKind<P> {
         }
     }
 
-    /// Clones path and returns EntryKind<PathBuf>
+    /// Clones path and returns `EntryKind<PathBuf>`
     pub fn cloned(&self) -> EntryKind<PathBuf> {
         use self::EntryKind::*;
         match *self {
@@ -177,6 +180,8 @@ impl<P> Ord for EntryKind<P>
         use std::cmp::Ordering::*;
         use self::EntryKind::*;
 
+        // we cannot just compare paths since directories and files are placed
+        // differently in a signature file
         match *self {
             Dir(ref path) => {
                 match *other {
