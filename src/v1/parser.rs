@@ -127,6 +127,10 @@ quick_error! {
 ///
 /// Entry kinds are ordered in a way they appear in a signature file.
 /// Thus `File("/b") < Dir("/a")`.
+///
+/// Comparing invalid entry kinds can will panic. For example all following
+/// entries `Dir("")`, `Dir("a")`, `File("")`, `File("a")` and `File("/")` are
+/// invalid.
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntryKind<P: AsRef<Path>> {
     /// A directory
@@ -184,14 +188,20 @@ impl<P> Ord for EntryKind<P>
         // differently in a signature file
         match *self {
             Dir(ref path) => {
+                let path = path.as_ref();
+                assert!(path.is_absolute(), "Relative path");
                 match *other {
                     Dir(ref other_path) => {
-                        path.as_ref().cmp(other_path.as_ref())
+                        let other_path = other_path.as_ref();
+                        assert!(other_path.is_absolute(), "Relative path");
+                        path.cmp(other_path)
                     },
                     File(ref other_path) => {
-                        let other_parent = other_path.as_ref().parent()
-                            .unwrap_or(Path::new("/"));
-                        match path.as_ref().cmp(other_parent.as_ref()) {
+                        let other_path = other_path.as_ref();
+                        assert!(other_path.is_absolute(), "Relative path");
+                        let other_parent = other_path.parent()
+                            .expect("Path is not a file");
+                        match path.cmp(other_parent.as_ref()) {
                             Less | Equal => Less,
                             Greater => Greater,
                         }
@@ -199,21 +209,31 @@ impl<P> Ord for EntryKind<P>
                 }
             },
             File(ref path) => {
-                let parent = path.as_ref().parent().unwrap_or(Path::new("/"));
+                let path = path.as_ref();
+                assert!(path.is_absolute(), "Relative path");
+                let parent = path.parent()
+                    .expect("Path is not a file");
                 match *other {
                     Dir(ref other_path) => {
-                        match parent.cmp(other_path.as_ref()) {
+                        let other_path = other_path.as_ref();
+                        assert!(other_path.is_absolute(), "Relative path");
+                        match parent.cmp(other_path) {
                             Less => Less,
                             Greater | Equal => Greater,
                         }
                     },
                     File(ref other_path) => {
                         let other_parent = other_path.as_ref().parent()
-                            .unwrap_or(Path::new("/"));
+                            .expect("Path is not a file");
                         match parent.cmp(other_parent) {
                             Less => Less,
                             Greater => Greater,
-                            Equal => path.as_ref().cmp(other_path.as_ref()),
+                            Equal => {
+                                path.file_name()
+                                    .expect("Empty file name")
+                                    .cmp(&other_path.as_ref().file_name()
+                                         .expect("Empty file name"))
+                            }
                         }
                     }
                 }
@@ -778,10 +798,7 @@ mod test {
         use super::EntryKind::*;
 
         let entries = &[
-            Dir(""),
             Dir("/"),
-            File(""),
-            File("/"),
             File("/1"),
             File("/a"),
             Dir("/1"),
