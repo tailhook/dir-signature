@@ -123,13 +123,123 @@ quick_error! {
     }
 }
 
-/// Represents a type of the entry inside a signature file
-#[derive(Debug)]
+/// Represents a type of the entry inside a signature file.
+///
+/// Entry kinds are ordered in a way they appear in a signature file.
+/// Thus `File("/b") < Dir("/a")`.
+///
+/// Comparing invalid entry kinds can will panic. For example all following
+/// entries `Dir("")`, `Dir("a")`, `File("")`, `File("a")` and `File("/")` are
+/// invalid.
+#[derive(Debug, PartialEq, Eq)]
 pub enum EntryKind<P: AsRef<Path>> {
     /// A directory
     Dir(P),
     /// A file or a symbolic link
     File(P),
+}
+
+impl<P: AsRef<Path>> EntryKind<P> {
+    /// Get path of the entry
+    pub fn path(&self) -> &Path {
+        use self::EntryKind::*;
+        match *self {
+            Dir(ref p) | File(ref p) => p.as_ref(),
+        }
+    }
+
+    /// Converts to `EntryKind<&Path>`
+    pub fn as_ref(&self) -> EntryKind<&Path> {
+        use self::EntryKind::*;
+        match *self {
+            Dir(ref p) => Dir(p.as_ref()),
+            File(ref p) => File(p.as_ref()),
+        }
+    }
+
+    /// Clones path and returns `EntryKind<PathBuf>`
+    pub fn cloned(&self) -> EntryKind<PathBuf> {
+        use self::EntryKind::*;
+        match *self {
+            Dir(ref p) => Dir(p.as_ref().to_path_buf()),
+            File(ref p) => File(p.as_ref().to_path_buf()),
+        }
+    }
+}
+
+impl<P> PartialOrd for EntryKind<P>
+    where P: AsRef<Path> + PartialEq + Eq
+{
+    fn partial_cmp(&self, other: &EntryKind<P>)
+        -> Option<Ordering>
+    {
+        Some(self.cmp(other))
+    }
+}
+
+impl<P> Ord for EntryKind<P>
+    where P: AsRef<Path> + PartialEq + Eq
+{
+    fn cmp(&self, other: &EntryKind<P>) -> Ordering {
+        use std::cmp::Ordering::*;
+        use self::EntryKind::*;
+
+        // we cannot just compare paths since directories and files are placed
+        // differently in a signature file
+        match *self {
+            Dir(ref path) => {
+                let path = path.as_ref();
+                assert!(path.is_absolute(), "Relative path");
+                match *other {
+                    Dir(ref other_path) => {
+                        let other_path = other_path.as_ref();
+                        assert!(other_path.is_absolute(), "Relative path");
+                        path.cmp(other_path)
+                    },
+                    File(ref other_path) => {
+                        let other_path = other_path.as_ref();
+                        assert!(other_path.is_absolute(), "Relative path");
+                        let other_parent = other_path.parent()
+                            .expect("Path is not a file");
+                        match path.cmp(other_parent.as_ref()) {
+                            Less | Equal => Less,
+                            Greater => Greater,
+                        }
+                    }
+                }
+            },
+            File(ref path) => {
+                let path = path.as_ref();
+                assert!(path.is_absolute(), "Relative path");
+                let parent = path.parent()
+                    .expect("Path is not a file");
+                match *other {
+                    Dir(ref other_path) => {
+                        let other_path = other_path.as_ref();
+                        assert!(other_path.is_absolute(), "Relative path");
+                        match parent.cmp(other_path) {
+                            Less => Less,
+                            Greater | Equal => Greater,
+                        }
+                    },
+                    File(ref other_path) => {
+                        let other_parent = other_path.as_ref().parent()
+                            .expect("Path is not a file");
+                        match parent.cmp(other_parent) {
+                            Less => Less,
+                            Greater => Greater,
+                            Equal => {
+                                path.file_name()
+                                    .expect("Empty file name")
+                                    .cmp(&other_path.as_ref().file_name()
+                                         .expect("Empty file name"))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Represents header of the dir signature file
@@ -321,7 +431,7 @@ impl Entry {
     }
 
     /// Get path of the entry
-    pub fn get_path(&self) -> &Path {
+    pub fn path(&self) -> &Path {
         match *self {
             Entry::Dir(ref path) |
             Entry::File{ref path, ..} |
@@ -332,11 +442,11 @@ impl Entry {
     /// Returns kind of the entry. Can be passed into
     /// [`EntryIterator::advance`](struct.EntryIterator.html#method.advance)
     /// method
-    pub fn kind(&self) -> EntryKind<PathBuf> {
+    pub fn kind(&self) -> EntryKind<&Path> {
         match *self {
-            Entry::Dir(ref path) => EntryKind::Dir(path.clone()),
+            Entry::Dir(ref path) => EntryKind::Dir(path.as_ref()),
             Entry::File{ref path, ..} |
-            Entry::Link(ref path, _) => EntryKind::File(path.clone()),
+            Entry::Link(ref path, _) => EntryKind::File(path.as_ref()),
         }
     }
 }
@@ -464,86 +574,23 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
     pub fn advance<P: AsRef<Path>>(&mut self, kind: &EntryKind<P>)
         -> Option<Result<Entry, ParseError>>
     {
-        match *kind {
-            EntryKind::File(ref path) => {
-                self.advance_to_file(path.as_ref())
-            },
-            EntryKind::Dir(ref path) => {
-                self.advance_to_dir(path.as_ref())
-            },
-        }
-    }
+        use std::cmp::Ordering::*;
 
-    fn advance_to_file(&mut self, path: &Path)
-        -> Option<Result<Entry, ParseError>>
-    {
-        let dir = if let Some(dir) = path.parent() {
-            dir
-        } else {
-            return None;
-        };
         loop {
             match self.parse_entry() {
                 Ok(Some(entry)) => {
-                    match self.current_dir.as_path().cmp(dir) {
-                        Ordering::Less => {
+                    match entry.kind().cmp(&kind.as_ref()) {
+                        Less => {
                             self.current_row.clear();
                             continue;
                         },
-                        Ordering::Greater => {
+                        Greater => {
                             return None;
                         },
-                        Ordering::Equal => {},
-                    }
-                    let current_path = entry.get_path().to_path_buf();
-                    match current_path.as_path().cmp(path) {
-                        Ordering::Less => {
-                            self.current_row.clear();
-                            continue;
-                        },
-                        Ordering::Equal => {
+                        Equal => {
                             self.current_row.clear();
                             return Some(Ok(entry));
                         },
-                        Ordering::Greater => {
-                            return None;
-                        },
-                    }
-                },
-                Ok(None) => return None,
-                Err(e) => return Some(Err(e)),
-            }
-        }
-    }
-
-    fn advance_to_dir(&mut self, path: &Path)
-        -> Option<Result<Entry, ParseError>>
-    {
-        loop {
-            match self.parse_entry() {
-                Ok(Some(entry)) => {
-                    if let Entry::File{..} = entry {
-                        if self.current_dir < path {
-                            self.current_row.clear();
-                            continue;
-                        } else {
-                            return None;
-                        }
-                    }
-                    if let Entry::Dir(..) = entry {
-                        match self.current_dir.as_path().cmp(path) {
-                            Ordering::Less => {
-                                self.current_row.clear();
-                                continue;
-                            },
-                            Ordering::Equal => {
-                                self.current_row.clear();
-                                return Some(Ok(entry));
-                            },
-                            Ordering::Greater => {
-                                return None;
-                            },
-                        }
                     }
                 },
                 Ok(None) => return None,
@@ -745,6 +792,28 @@ mod test {
     use ::HashType;
     use super::{Entry, Footer, Hashes, Header, ParseRowError};
     use super::{parse_hashes, parse_hex, is_hex, is_hex_encoding, unescape_hex};
+
+    #[test]
+    fn test_entry_kind_ord() {
+        use super::EntryKind::*;
+
+        let entries = &[
+            Dir("/"),
+            File("/1"),
+            File("/a"),
+            Dir("/1"),
+            File("/1/1"),
+            File("/1/a"),
+            Dir("/1/1"),
+            Dir("/1/a"),
+            Dir("/a"),
+        ];
+        for (i1, e1) in entries.iter().enumerate() {
+            for (i2, e2) in entries.iter().enumerate() {
+                assert_eq!(i1.cmp(&i2), e1.cmp(e2), "e1: {:?}, e2: {:?}", e1, e2);
+            }
+        }
+    }
 
     #[test]
     fn test_header_parse() {
