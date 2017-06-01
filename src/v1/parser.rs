@@ -344,7 +344,7 @@ impl Footer {
 }
 
 /// Entry hashes iterator
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Hashes {
     data: Vec<u8>,
     hash_type: HashType,
@@ -370,7 +370,7 @@ impl Hashes {
 }
 
 /// Represents an entry from dir signature file
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Entry {
     /// Direcory
     Dir(PathBuf),
