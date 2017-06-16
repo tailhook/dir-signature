@@ -2,7 +2,7 @@ use std::str::FromStr;
 use {Error};
 
 /// A type of hash supported by the library
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum HashType {
     /// A SHA512 checksum truncated to 256 bits
