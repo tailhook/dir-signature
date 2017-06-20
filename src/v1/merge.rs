@@ -9,8 +9,7 @@
 //!   for iterating over entries from multiple signature files
 
 use std::fs::File;
-use std::io;
-use std::io::{BufRead, BufReader};
+use std::io::{self, BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use ::HashType;
@@ -120,28 +119,37 @@ impl<K, R: BufRead> MergedSignatures<K, R> {
 
     /// Creates iterator
     pub fn iter<'a>(&'a mut self) -> MergedEntriesIterator<'a, K, R> {
-        MergedEntriesIterator {
-            merged_entries: self.parsers.iter_mut()
-                .map(|&mut (ref key, ref mut parser)| {
-                    (key, parser.iter())
-                })
-                .collect::<Vec<_>>(),
-        }
+        MergedEntriesIterator::new(self)
     }
 }
 
 /// Iterator over the entries from several signature files
 pub struct MergedEntriesIterator<'a, K: 'a, R: 'a + BufRead> {
-    merged_entries: Vec<(&'a K, EntryIterator<'a, R>)>,
+    iterators: Vec<(&'a K, PeekableEntryIterator<'a, R>)>,
+    iterator_ixs: Vec<usize>,
 }
 
 impl<'a, K, R: BufRead> MergedEntriesIterator<'a, K, R> {
+    fn new(merged_signatures: &'a mut MergedSignatures<K, R>)
+        -> MergedEntriesIterator<'a, K, R>
+    {
+        let n = merged_signatures.parsers.len();
+        MergedEntriesIterator {
+            iterators: merged_signatures.parsers.iter_mut()
+                .map(|&mut (ref key, ref mut parser)| {
+                    (key, PeekableEntryIterator::new(parser.iter()))
+                })
+                .collect::<Vec<_>>(),
+            iterator_ixs: Vec::with_capacity(n)
+        }
+    }
+
     /// Advances all parsers and returns all matching entries
     pub fn advance<P: AsRef<Path>>(&mut self, to: &EntryKind<P>)
         -> Vec<(&'a K, Result<Entry, ParseError>)>
     {
         let mut entries = vec!();
-        for &mut (key, ref mut iterator) in self.merged_entries.iter_mut() {
+        for &mut (key, ref mut iterator) in self.iterators.iter_mut() {
             if let Some(entry) = iterator.advance(to) {
                 entries.push((key, entry));
             }
@@ -150,14 +158,119 @@ impl<'a, K, R: BufRead> MergedEntriesIterator<'a, K, R> {
     }
 }
 
-// TODO
-// impl<'a, K, R: BufRead> Iterator for MergedEntriesIterator<'a, K, R> {
-//     type Item = Vec<(&'a K, Result<Entry, ParseError>)>;
+struct PeekableEntryIterator<'a, R: 'a + BufRead> {
+    head: Option<Result<Entry, ParseError>>,
+    tail: EntryIterator<'a, R>,
+}
 
-//     fn next(&mut self) -> Option<Self::Item> {
-//         None
-//     }
-// }
+impl<'a, R: 'a + BufRead> PeekableEntryIterator<'a, R> {
+    fn new(iter: EntryIterator<'a, R>) -> PeekableEntryIterator<'a, R> {
+        PeekableEntryIterator {
+            head: None,
+            tail: iter,
+        }
+    }
+
+    fn peek(&mut self) -> Option<&Result<Entry, ParseError>> {
+        if self.head.is_none() {
+            self.head = self.tail.next();
+        }
+        self.head.as_ref()
+    }
+
+    fn advance<P: AsRef<Path>>(&mut self, kind: &EntryKind<P>)
+        -> Option<Result<Entry, ParseError>>
+    {
+        use std::cmp::Ordering::*;
+
+        let cmp_res = match self.peek() {
+            Some(&Ok(ref entry)) => entry.kind().cmp(&kind.as_ref()),
+            Some(&Err(_)) => Equal,
+            None => return None,
+        };
+        match cmp_res {
+            Less => {
+                self.head = None;
+                self.tail.advance(kind)
+            },
+            Greater => None,
+            Equal => self.head.take(),
+        }
+    }
+}
+
+impl<'a, R: BufRead> Iterator for PeekableEntryIterator<'a, R> {
+    type Item = Result<Entry, ParseError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.peek() {
+            Some(_) => self.head.take(),
+            None => None,
+        }
+    }
+}
+
+impl<'a, K, R: BufRead> Iterator for MergedEntriesIterator<'a, K, R> {
+    type Item = Vec<(&'a K, Result<Entry, ParseError>)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use std::cmp::Ordering::*;
+
+        let mut res = Vec::with_capacity(self.iterators.len());
+        self.iterator_ixs.clear();
+        {
+            let mut min_kind = None;
+            for (ix, &mut (_, ref mut iterator)) in
+                self.iterators.iter_mut().enumerate()
+            {
+                match iterator.peek() {
+                    Some(&Ok(ref entry)) => {
+                        let kind = entry.kind();
+                        let cmp_res = if let Some(ref min_kind) = min_kind {
+                            Some(kind.cmp(min_kind))
+                        } else {
+                            None
+                        };
+                        match cmp_res {
+                            Some(Less) => {
+                                min_kind = Some(kind);
+                                self.iterator_ixs.clear();
+                                self.iterator_ixs.push(ix);
+                            },
+                            Some(Equal) => {
+                                self.iterator_ixs.push(ix);
+                            },
+                            Some(Greater) => {},
+                            None => {
+                                min_kind = Some(kind);
+                                self.iterator_ixs.push(ix);
+                            }
+                        }
+                    },
+                    Some(&Err(_)) => {
+                        self.iterator_ixs.push(ix);
+                    },
+                    None => {},
+                }
+            }
+        }
+
+        for &ix in &self.iterator_ixs {
+            let ref mut elem = self.iterators[ix];
+            let key = elem.0;
+            let ref mut iterator = elem.1;
+            if let Some(entry) = iterator.next() {
+                res.push((key, entry));
+            }
+        }
+
+        if res.is_empty() {
+            None
+        } else {
+            Some(res)
+        }
+    }
+}
 
 fn check_same<I, V>(values: I) -> bool
     where I: IntoIterator<Item=V>, V: PartialEq
