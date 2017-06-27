@@ -13,6 +13,7 @@ use quick_error::ResultExt;
 
 use ::HashType;
 use super::writer::{MAGIC, VERSION};
+use super::hash::{self, FixedOutput};
 
 quick_error! {
     /// The error type that represents errors which can happen when parsing
@@ -348,13 +349,15 @@ impl Footer {
 pub struct Hashes {
     data: Vec<u8>,
     hash_type: HashType,
+    block_size: u64,
 }
 
 impl Hashes {
-    fn new(data: Vec<u8>, hash_type: HashType) -> Hashes {
+    fn new(data: Vec<u8>, hash_type: HashType, block_size: u64) -> Hashes {
         Hashes {
             data: data,
             hash_type: hash_type,
+            block_size: block_size,
         }
     }
 
@@ -366,6 +369,30 @@ impl Hashes {
     /// Returns iterator over hashes
     pub fn iter<'a>(&'a self) -> Chunks<'a, u8> {
         self.data.chunks(self.hash_type.output_bytes())
+    }
+
+    /// Checks whether file has the same hash
+    pub fn check_file<R: io::Read>(&self, f: R) -> io::Result<bool> {
+        match self.hash_type {
+            HashType::Sha512_256 => self._check_file(f, hash::Sha512_256),
+            HashType::Blake2b_256 => self._check_file(f, hash::Blake2b_256),
+        }
+    }
+
+    fn _check_file<R: io::Read, H: hash::Hash>(&self, mut f: R, h: H)
+        -> io::Result<bool>
+    {
+        for orig_hash in self.iter() {
+            let hash = h.hash_file(&mut f, self.block_size)?;
+            if orig_hash != &hash.fixed_result()[..] {
+                return Ok(false);
+            }
+        }
+        let mut test_buf = [0; 1];
+        if f.read(&mut test_buf)? != 0 {
+            return Ok(false);
+        }
+        Ok(true)
     }
 }
 
@@ -405,7 +432,7 @@ impl Entry {
                 let (file_size, row) = parse_u64(row)?;
                 let hashes_num = ((file_size + block_size - 1) / block_size) as usize;
                 let (hashes_data, row) = parse_hashes(row, hash_type, hashes_num)?;
-                let hashes = Hashes::new(hashes_data, hash_type);
+                let hashes = Hashes::new(hashes_data, hash_type, block_size);
                 (Entry::File {
                     path: path,
                     exe: file_type == "x",
@@ -785,6 +812,7 @@ fn is_hex(c: u8) -> bool {
 mod test {
     use std::borrow::Cow;
     use std::ffi::OsStr;
+    use std::io::Cursor;
     use std::path::Path;
 
     use rustc_serialize::hex::FromHex;
@@ -973,15 +1001,29 @@ mod test {
 
     #[test]
     fn test_hashes_eq() {
+        let b = 32768;
         assert_eq!(
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256),
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256));
+            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b),
+            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b));
         assert_ne!(
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256),
-            Hashes::new(b"\xFF".to_vec(), HashType::Sha512_256));
+            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b),
+            Hashes::new(b"\xFF".to_vec(), HashType::Sha512_256, b));
         assert_ne!(
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256),
-            Hashes::new(b"\x00".to_vec(), HashType::Blake2b_256));
+            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b),
+            Hashes::new(b"\x00".to_vec(), HashType::Blake2b_256, b));
+    }
+
+    #[test]
+    fn test_hashes_check_file() {
+        let hashes = Hashes::new(
+            b"\xEE\x26\xB0\xDD\x4A\xF7\xE7\x49\xAA\x1A\x8E\xE3\xC1\x0A\xE9\x92\
+              \x3F\x61\x89\x80\x77\x2E\x47\x3F\x88\x19\xA5\xD4\x94\x0E\x0D\xB2".to_vec(),
+            HashType::Sha512_256,
+            4);
+        assert!(hashes.check_file(Cursor::new(b"test")).unwrap());
+        assert!(!hashes.check_file(Cursor::new(b"tes1")).unwrap());
+        assert!(!hashes.check_file(Cursor::new(b"tes")).unwrap());
+        assert!(!hashes.check_file(Cursor::new(b"test123")).unwrap());
     }
 
     #[test]

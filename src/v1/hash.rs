@@ -13,13 +13,24 @@ static LOWER_CHARS: &'static[u8] = b"0123456789abcdef";
 
 
 pub trait Hash {
-    type HexOutput: fmt::LowerHex;
+    type Output: FixedOutput + fmt::LowerHex;
     type Digest: Digest;
     fn name(&self) -> &str;
-    fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
-        -> io::Result<Self::HexOutput>;
     fn total_hasher(&self) -> Self::Digest;
-    fn total_hash(&self, d: &Self::Digest) -> Self::HexOutput;
+    fn total_hash(&self, d: &Self::Digest) -> Self::Output;
+
+    fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
+        -> io::Result<Self::Output>
+    {
+        let mut digest = DWriter::new(self.total_hasher());
+        io::copy(&mut f.take(block_size), &mut digest)?;
+        let d = digest.into_inner();
+        Ok(self.total_hash(&d))
+    }
+}
+
+pub trait FixedOutput {
+    fn fixed_result(self) -> GenericArray<u8, U32>;
 }
 
 #[allow(non_camel_case_types)]
@@ -29,56 +40,52 @@ pub struct Sha512_256;
 pub struct Blake2b_256;
 
 #[allow(non_camel_case_types)]
-pub struct Sha512_256_Hex(GenericArray<u8, U64>);
+pub struct Sha512_256_Res(GenericArray<u8, U64>);
 
 #[allow(non_camel_case_types)]
-pub struct Blake2b_256_Hex(GenericArray<u8, U32>);
+pub struct Blake2b_256_Res(GenericArray<u8, U32>);
 
 impl Hash for Sha512_256 {
-    type HexOutput = Sha512_256_Hex;
+    type Output = Sha512_256_Res;
     type Digest = sha2::Sha512;
     fn name(&self) -> &str {
         "sha512/256"
     }
-    fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
-        -> io::Result<Sha512_256_Hex>
-    {
-        let mut digest = DWriter::new(sha2::Sha512::new());
-        io::copy(&mut f.take(block_size), &mut digest)?;
-        let d = digest.into_inner();
-        Ok(Sha512_256_Hex(d.result()))
-    }
     fn total_hasher(&self) -> Self::Digest {
         sha2::Sha512::new()
     }
-    fn total_hash(&self, d: &Self::Digest) -> Self::HexOutput {
-        Sha512_256_Hex(d.result())
+    fn total_hash(&self, d: &Self::Digest) -> Self::Output {
+        Sha512_256_Res(d.result())
     }
 }
 
 impl Hash for Blake2b_256 {
-    type HexOutput = Blake2b_256_Hex;
+    type Output = Blake2b_256_Res;
     type Digest = Blake2b<U32>;
     fn name(&self) -> &str {
         "blake2b/256"
     }
-    fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
-        -> io::Result<Blake2b_256_Hex>
-    {
-        let mut digest = DWriter::new(Blake2b::new());
-        io::copy(&mut f.take(block_size), &mut digest)?;
-        let d = digest.into_inner();
-        Ok(Blake2b_256_Hex(d.result()))
-    }
     fn total_hasher(&self) -> Self::Digest {
         Blake2b::new()
     }
-    fn total_hash(&self, d: &Self::Digest) -> Self::HexOutput {
-        Blake2b_256_Hex(d.result())
+    fn total_hash(&self, d: &Self::Digest) -> Self::Output {
+        Blake2b_256_Res(d.result())
     }
 }
 
-impl fmt::LowerHex for Sha512_256_Hex {
+impl FixedOutput for Sha512_256_Res {
+    fn fixed_result(self) -> GenericArray<u8, U32> {
+        GenericArray::from_slice(&self.0[..32])
+    }
+}
+
+impl FixedOutput for Blake2b_256_Res {
+    fn fixed_result(self) -> GenericArray<u8, U32> {
+        self.0
+    }
+}
+
+impl fmt::LowerHex for Sha512_256_Res {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let data = &self.0[..32];  // Truncated hash!
         assert!(data.len() == 32);
@@ -95,7 +102,7 @@ impl fmt::LowerHex for Sha512_256_Hex {
     }
 }
 
-impl fmt::LowerHex for Blake2b_256_Hex {
+impl fmt::LowerHex for Blake2b_256_Res {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let data = &self.0[..32];
         assert!(data.len() == 32);
