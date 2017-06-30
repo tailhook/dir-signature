@@ -12,8 +12,8 @@ use std::str::FromStr;
 use quick_error::ResultExt;
 
 use ::HashType;
+use super::hash;
 use super::writer::{MAGIC, VERSION};
-use super::hash::{self, FixedOutput};
 
 quick_error! {
     /// The error type that represents errors which can happen when parsing
@@ -384,7 +384,7 @@ impl Hashes {
     {
         for orig_hash in self.iter() {
             let hash = h.hash_file(&mut f, self.block_size)?;
-            if orig_hash != &hash.fixed_result()[..] {
+            if orig_hash != &hash[..] {
                 return Ok(false);
             }
         }
