@@ -15,6 +15,7 @@ pub struct Progress<W, S> {
     files: u64,
     dirs: u64,
     symlinks: u64,
+    started: Instant,
 }
 
 impl<W: Writer, S: io::Write> Progress<W, S> {
@@ -26,6 +27,7 @@ impl<W: Writer, S: io::Write> Progress<W, S> {
             files: 0,
             dirs: 0,
             symlinks: 0,
+            started: Instant::now(),
         }
     }
     pub fn check_print(&mut self) {
@@ -40,8 +42,9 @@ impl<W: Writer, S: io::Write> Progress<W, S> {
     }
     pub fn print_final(&mut self) {
         write!(&mut self.progress_dest,
-            "Done. Indexed {} dirs, {} files, {} symlinks.\n",
-            self.dirs, self.files, self.symlinks).ok();
+            "Done. Indexed {} dirs, {} files, {} symlinks in {} sec.\n",
+            self.dirs, self.files, self.symlinks,
+            (Instant::now() - self.started).as_secs()).ok();
         self.progress_dest.flush().ok();
     }
 }
