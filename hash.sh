@@ -1,13 +1,14 @@
 #!/bin/sh -e
 
 DIR=${1:-.}
-: ${HASH_BITS:=256}
-: ${HASH:=sha512}
-: ${HASH_CMD:=${HASH}sum}
-: ${HASH_BYTES:=$((HASH_BITS / 8 * 2))}
+: ${HASH_BITS:=512}
+: ${HASH_TRUNC_BITS:=256}
+: ${HASH_NAME:=sha${HASH_BITS}/${HASH_TRUNC_BITS}}
+: ${HASH_CMD:=shasum -a $HASH_BITS$HASH_TRUNC_BITS}
+: ${HASH_BYTES:=$((HASH_TRUNC_BITS / 8 * 2))}
 : ${BLOCK_SIZE:=32768}
 
-echo "DIRSIGNATURE.v1 $HASH/$HASH_BITS block_size=$BLOCK_SIZE"
+echo "DIRSIGNATURE.v1 $HASH_NAME block_size=$BLOCK_SIZE"
 
 exec 3>&1
 final_hash=$({
