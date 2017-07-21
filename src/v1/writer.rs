@@ -1,5 +1,6 @@
 use std::fmt;
 use std::io::{self, Write};
+use std::ops::Add;
 use std::sync::Arc;
 use std::path::Path;
 use std::os::unix::ffi::OsStrExt;
@@ -8,6 +9,7 @@ use std::os::unix::fs::PermissionsExt;
 
 use sha2::Digest;
 use openat::{Dir, Entry};
+use generic_array::ArrayLength;
 
 use error::Error::{self, WriteError as EWrite, ReadFile as EFile};
 use super::hash::Hash;
@@ -40,7 +42,11 @@ pub struct SyncWriter<F, H: Hash> {
     hash: H,
 }
 
-impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
+impl<F, H> Writer for SyncWriter<F, H>
+    where F: io::Write,
+          H: Hash,
+          <H::OutputSize as Add>::Output: ArrayLength<u8>
+{
     fn start_dir(&mut self, path: &Path) -> Result<(), Error> {
         writeln!(&mut self.file, "{}", Name(path)).map_err(EWrite)?;
         Ok(())
