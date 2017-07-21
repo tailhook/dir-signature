@@ -4,7 +4,7 @@ use std::str;
 
 use sha2::{self, Digest};
 use blake2::Blake2b;
-use typenum::{U64, U32};
+use typenum::U32;
 use generic_array::GenericArray;
 use digest_writer::Writer as DWriter;
 
@@ -40,19 +40,19 @@ pub struct Sha512_256;
 pub struct Blake2b_256;
 
 #[allow(non_camel_case_types)]
-pub struct Sha512_256_Res(GenericArray<u8, U64>);
+pub struct Sha512_256_Res(GenericArray<u8, U32>);
 
 #[allow(non_camel_case_types)]
 pub struct Blake2b_256_Res(GenericArray<u8, U32>);
 
 impl Hash for Sha512_256 {
     type Output = Sha512_256_Res;
-    type Digest = sha2::Sha512;
+    type Digest = sha2::Sha512Trunc256;
     fn name(&self) -> &str {
         "sha512/256"
     }
     fn total_hasher(&self) -> Self::Digest {
-        sha2::Sha512::new()
+        sha2::Sha512Trunc256::new()
     }
     fn total_hash(&self, d: &Self::Digest) -> Self::Output {
         Sha512_256_Res(d.result())
