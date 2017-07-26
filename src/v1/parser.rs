@@ -344,13 +344,17 @@ impl Footer {
     }
 }
 
-/// Entry hashes iterator
+/// List of hashes for an entry
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Hashes {
     data: Vec<u8>,
     hash_type: HashType,
     block_size: u64,
 }
+
+/// Entry hashes iterator
+#[derive(Debug)]
+pub struct HashesIter<'a>(Chunks<'a, u8>);
 
 impl Hashes {
     fn new(data: Vec<u8>, hash_type: HashType, block_size: u64) -> Hashes {
@@ -367,8 +371,8 @@ impl Hashes {
     }
 
     /// Returns iterator over hashes
-    pub fn iter<'a>(&'a self) -> Chunks<'a, u8> {
-        self.data.chunks(self.hash_type.output_bytes())
+    pub fn iter<'a>(&'a self) -> HashesIter<'a> {
+        HashesIter(self.data.chunks(self.hash_type.output_bytes()))
     }
 
     /// Checks whether file has the same hash
@@ -394,6 +398,13 @@ impl Hashes {
             return Ok(false);
         }
         Ok(true)
+    }
+}
+
+impl<'a> Iterator for HashesIter<'a> {
+    type Item = &'a [u8];
+    fn next(&mut self) -> Option<&'a [u8]> {
+        self.0.next()
     }
 }
 

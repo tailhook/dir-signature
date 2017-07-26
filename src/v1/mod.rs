@@ -19,7 +19,8 @@ pub mod merge;
 use std::io;
 
 pub use error::Error;
-pub use self::parser::{Hashes, Header, Entry, EntryKind, Parser, EntryIterator};
+pub use self::parser::{Hashes, HashesIter};
+pub use self::parser::{Header, Entry, EntryKind, Parser, EntryIterator};
 pub use self::parser::{ParseError};
 
 use self::progress::Progress;
