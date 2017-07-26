@@ -8,7 +8,7 @@ use rustc_serialize::hex::FromHex;
 
 extern crate dir_signature;
 use dir_signature::HashType;
-use dir_signature::v1::{Entry, EntryKind, Parser, ParseError, ParseRowError};
+use dir_signature::v1::{Entry, EntryKind, Parser};
 
 #[test]
 fn test_parser() {
@@ -252,13 +252,11 @@ fn test_parser_invalid_header_signature() {
     let content = "DIRSIGNATUR.v1 sha512/256 block_size=32768\n";
     let reader = BufReader::new(Cursor::new(&content[..]));
     match Parser::new(reader) {
-        Err(ParseError::Parse(ref err, row_num)) => {
+        Err(err) => {
             assert_eq!(format!("{}", err),
-                "Invalid signature: expected \"DIRSIGNATURE\" but was \"DIRSIGNATUR\"");
-            assert_eq!(row_num, 1);
-        },
-        Err(_) => {
-            panic!("Expected \"ParseError::Parse\" error");
+                "Parse error at line 1: \
+                 Invalid signature: expected \"DIRSIGNATURE\" \
+                 but was \"DIRSIGNATUR\"");
         },
         Ok(_) => {
             panic!("Expected error");
@@ -274,10 +272,15 @@ DIRSIGNATURE.v1 sha512/256 block_size=32768
     let reader = BufReader::new(Cursor::new(&content[..]));
     let mut parser = Parser::new(reader).unwrap();
     let entry_res = parser.iter().next();
+    assert_eq!(format!("{}", entry_res.unwrap().unwrap_err()),
+        "Parse error at line 2: Invalid line: \
+         Every line must end with a newline");
+    /*
     assert!(matches!(entry_res,
             Some(Err(ParseError::Parse(ParseRowError::InvalidLine(ref msg), row_num)))
             if msg.starts_with("Every line must end with a newline") && row_num == 2),
         "Entry result was: {:?}", entry_res);
+    */
 }
 
 #[test]

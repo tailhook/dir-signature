@@ -106,7 +106,7 @@ quick_error! {
 quick_error! {
     /// The error type that can happen when parsing directory signature file
     #[derive(Debug)]
-    pub enum ParseError {
+    pub enum ParseError wraps ErrorEnum {
         /// An I/O operation error
         Io(err: io::Error) {
             cause(err)
@@ -490,8 +490,10 @@ impl<R: BufRead> Parser<R> {
     /// Tries to parse header
     pub fn new(mut reader: R) -> Result<Parser<R>, ParseError> {
         let mut header_line = vec!();
-        read_line(&mut reader, &mut header_line).context(1)?;
-        let header = Header::parse(&header_line).context(1)?;
+        read_line(&mut reader, &mut header_line)
+            .map_err(|e| ErrorEnum::Parse(e, 1))?;
+        let header = Header::parse(&header_line)
+            .map_err(|e| ErrorEnum::Parse(e, 1))?;
         Ok(Parser {
             header: header,
             reader: reader,
@@ -559,6 +561,9 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
     }
 
     fn parse_entry(&mut self) -> Result<Option<Entry>, ParseError> {
+        self._parse_entry().map_err(|e| e.into())
+    }
+    fn _parse_entry(&mut self) -> Result<Option<Entry>, ErrorEnum> {
         if self.exhausted {
             return Ok(None);
         }
@@ -577,7 +582,7 @@ impl<'a, R: BufRead> EntryIterator<'a, R> {
                     .context(self.current_row_num)?;
                 let mut test_buf = [0; 1];
                 if self.reader.read(&mut test_buf)? != 0 {
-                    return Err(ParseError::Parse(
+                    return Err(ErrorEnum::Parse(
                         ParseRowError::InvalidLine(
                             format!("Found extra lines after the footer")),
                         self.current_row_num));

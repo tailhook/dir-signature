@@ -36,5 +36,7 @@ quick_error! {
         UnsupportedHash {
             description("Unsupported hash algorithm")
         }
+        #[doc(hidden)]
+        __Nonexhaustive
     }
 }

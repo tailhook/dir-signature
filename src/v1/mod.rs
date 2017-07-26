@@ -20,7 +20,7 @@ use std::io;
 
 pub use error::Error;
 pub use self::parser::{Hashes, Header, Entry, EntryKind, Parser, EntryIterator};
-pub use self::parser::{ParseError, ParseRowError};
+pub use self::parser::{ParseError};
 
 use self::progress::Progress;
 use self::writer::SyncWriter;
