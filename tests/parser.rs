@@ -27,7 +27,7 @@ c23f2579827456818fc855c458d1ad7339d144b57ee247a6628e4fc8e39958bb
 
     let header = signature_parser.get_header();
     assert_eq!(header.get_version(), "v1");
-    assert_eq!(header.get_hash_type(), HashType::Sha512_256);
+    assert_eq!(header.get_hash_type(), HashType::sha512_256());
     assert_eq!(header.get_block_size(), 32768);
 
     let mut entry_iter = signature_parser.iter();

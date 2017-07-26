@@ -24,7 +24,7 @@ pub fn run() -> i32 {
     let mut index = None::<PathBuf>;
     let mut threads = num_cpus::get();
     let mut dirs = Vec::<String>::new();
-    let mut hash_type = HashType::Sha512_256;
+    let mut hash_type = HashType::sha512_256();
     let mut progress = true;
     {
         let mut ap = ArgumentParser::new();

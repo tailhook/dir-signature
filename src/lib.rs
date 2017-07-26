@@ -48,7 +48,6 @@ mod hash_type;
 mod read;
 
 pub use error::Error;
-pub use hash_type::HashType;
 pub use read::get_hash;
 
 use std::path::PathBuf;
@@ -62,4 +61,15 @@ pub struct ScannerConfig {
     block_size: u64,
     dirs: Vec<(PathBuf, PathBuf)>,
     print_progress: bool,
+}
+
+/// A type of hash supported by the library
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct HashType(HashTypeEnum);
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[allow(non_camel_case_types)]
+enum HashTypeEnum {
+    Sha512_256,
+    Blake2b_256,
 }

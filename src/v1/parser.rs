@@ -373,9 +373,10 @@ impl Hashes {
 
     /// Checks whether file has the same hash
     pub fn check_file<R: io::Read>(&self, f: R) -> io::Result<bool> {
-        match self.hash_type {
-            HashType::Sha512_256 => self._check_file(f, hash::Sha512_256),
-            HashType::Blake2b_256 => self._check_file(f, hash::Blake2b_256),
+        use HashTypeEnum::*;
+        match self.hash_type.0 {
+            Sha512_256 => self._check_file(f, hash::Sha512_256),
+            Blake2b_256 => self._check_file(f, hash::Blake2b_256),
         }
     }
 
@@ -892,13 +893,13 @@ mod test {
         let res = Header::parse(b"DIRSIGNATURE.v1 sha512/256 block_size=1234");
         let header = res.unwrap();
         assert_eq!(header.get_version(), "v1");
-        assert!(matches!(header.get_hash_type(), HashType::Sha512_256));
+        assert!(header.get_hash_type() == HashType::sha512_256());
         assert_eq!(header.get_block_size(), 1234);
     }
 
     #[test]
     fn test_entry_parse() {
-        let t = HashType::Sha512_256;
+        let t = HashType::sha512_256();
         let b = 32768;
 
         let res = Entry::parse(b"", Path::new(""), t, b);
@@ -965,7 +966,7 @@ mod test {
         let res = parse_hashes(
             b"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc \
               c384d6b21c50e0aa9bf80124256d56ba36c6a05ce0cc09bf858fa09e84aa19d4",
-            HashType::Sha512_256, 1);
+            HashType::sha512_256(), 1);
         assert!(matches!(res,
                 Ok((ref hashes, tail))
                 if hashes.len() == 32 && tail.len() == 64),
@@ -974,7 +975,7 @@ mod test {
         let res = parse_hashes(
             b"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc  \
               c384d6b21c50e0aa9bf80124256d56ba36c6a05ce0cc09bf858fa09e84aa19d4",
-            HashType::Sha512_256, 2);
+            HashType::sha512_256(), 2);
         assert!(matches!(res,
                 Err(ParseRowError::InvalidLine(ref msg))
                 if msg == "Row has multiple spaces"),
@@ -983,7 +984,7 @@ mod test {
         let res = parse_hashes(
             b"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc \
               c384d6b21c50e0aa9bf80124256d56ba36c6a05ce0cc09bf858fa09e84aa19d4",
-            HashType::Sha512_256, 3);
+            HashType::sha512_256(), 3);
         assert!(matches!(res,
                 Err(ParseRowError::InvalidHash(ref msg))
                 if msg == "Expected 3 hashes but found 2"),
@@ -992,7 +993,7 @@ mod test {
         let res = parse_hashes(
             b"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc_\
               c384d6b21c50e0aa9bf80124256d56ba36c6a05ce0cc09bf858fa09e84aa19d4",
-            HashType::Sha512_256, 1);
+            HashType::sha512_256(), 1);
         assert!(matches!(res,
                 Err(ParseRowError::InvalidHash(ref msg))
                 if msg.starts_with("Expected hash with length of 64:")),
@@ -1003,14 +1004,14 @@ mod test {
     fn test_hashes_eq() {
         let b = 32768;
         assert_eq!(
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b),
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b));
+            Hashes::new(b"\x00".to_vec(), HashType::sha512_256(), b),
+            Hashes::new(b"\x00".to_vec(), HashType::sha512_256(), b));
         assert_ne!(
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b),
-            Hashes::new(b"\xFF".to_vec(), HashType::Sha512_256, b));
+            Hashes::new(b"\x00".to_vec(), HashType::sha512_256(), b),
+            Hashes::new(b"\xFF".to_vec(), HashType::sha512_256(), b));
         assert_ne!(
-            Hashes::new(b"\x00".to_vec(), HashType::Sha512_256, b),
-            Hashes::new(b"\x00".to_vec(), HashType::Blake2b_256, b));
+            Hashes::new(b"\x00".to_vec(), HashType::sha512_256(), b),
+            Hashes::new(b"\x00".to_vec(), HashType::blake2b_256(), b));
     }
 
     #[test]
@@ -1018,7 +1019,7 @@ mod test {
         let hashes = Hashes::new(
             b"\x3D\x37\xFE\x58\x43\x5E\x0D\x87\x32\x3D\xEE\x4A\x2C\x1B\x33\x9E\
               \xF9\x54\xDE\x63\x71\x6E\xE7\x9F\x57\x47\xF9\x4D\x97\x4F\x91\x3F".to_vec(),
-            HashType::Sha512_256,
+            HashType::sha512_256(),
             4);
         assert!(hashes.check_file(Cursor::new(b"test")).unwrap());
         assert!(!hashes.check_file(Cursor::new(b"tes1")).unwrap());
@@ -1030,13 +1031,13 @@ mod test {
     fn test_footer_parse() {
         let res = Footer::parse(
             b"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc",
-            HashType::Sha512_256);
+            HashType::sha512_256());
         assert!(matches!(res,
                 Ok(Footer(ref data))
                 if data == &"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc".from_hex().unwrap()),
             "Result was: {:?}", res);
 
-        let res = Footer::parse(b"", HashType::Sha512_256);
+        let res = Footer::parse(b"", HashType::sha512_256());
         assert!(matches!(res,
                 Err(ParseRowError::InvalidHash(ref msg))
                 if msg.starts_with("Expected 1 hashes but found 0")),
@@ -1044,7 +1045,7 @@ mod test {
 
         let res = Footer::parse(
             b"8dd499a36d950b8732f85a3bffbc8d8bee4a0af391e8ee2bb0aa0c4553b6c0fc  test",
-            HashType::Sha512_256);
+            HashType::sha512_256());
         assert!(matches!(res,
                 Err(ParseRowError::InvalidLine(ref msg))
                 if msg == "Footer is not fully consumed: \" test\""),
@@ -1052,7 +1053,7 @@ mod test {
 
         let res = Footer::parse(
             b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-            HashType::Sha512_256);
+            HashType::sha512_256());
         assert!(matches!(res,
                 Err(ParseRowError::InvalidHex(ref msg))
                 if msg == "Character ord: 120"),

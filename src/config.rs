@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use {ScannerConfig, HashType};
+use {ScannerConfig, HashType, HashTypeEnum};
 
 
 impl ScannerConfig {
@@ -12,7 +12,7 @@ impl ScannerConfig {
         ScannerConfig {
             threads: 0,
             queue_size: None,
-            hash: HashType::Sha512_256,
+            hash: HashType(HashTypeEnum::Sha512_256),
             block_size: 32768,
             dirs: Vec::new(),
             print_progress: false,

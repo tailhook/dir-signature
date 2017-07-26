@@ -81,7 +81,8 @@ fn test_merge_different_hash_types() {
     let merger = MergedSignatures::new(parsers);
     assert!(matches!(merger,
             Err(MergeError::HashTypesMismatch(ref types))
-            if types == &vec!(HashType::Blake2b_256, HashType::Sha512_256)));
+            if types == &vec![HashType::blake2b_256(),
+                              HashType::sha512_256()]));
 }
 
 #[test]
