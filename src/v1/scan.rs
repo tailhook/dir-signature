@@ -50,7 +50,8 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
                 };
                 match typ {
                     T::Dir => subdirs.push((dir.clone(), entry)),
-                    T::Symlink | T::File => files.push((dir.clone(), entry)),
+                    T::Symlink => files.push((dir.clone(), entry, true)),
+                    T::File => files.push((dir.clone(), entry, false)),
                     T::Other => {
                         let base = dir.recover_path()
                             // if recover fails, use destination path
@@ -62,20 +63,16 @@ pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
                 }
             }
         }
-        files.sort_by(|&(_, ref a), &(_, ref b)| {
+        files.sort_by(|&(_, ref a, _), &(_, ref b, _)| {
             a.file_name().cmp(&b.file_name())
         });
         index.start_dir(&path)?;
-        for (dir, entry) in files {
+        for (dir, entry, is_symlink) in files {
             // TODO(tailhook) deduplicate!
-            match entry.simple_type().unwrap() {
-                T::File => {
-                    index.add_file(&dir, entry)?;
-                }
-                T::Symlink => {
-                    index.add_symlink(&dir, entry)?;
-                }
-                _ => unreachable!(),
+            if is_symlink {
+                index.add_symlink(&dir, entry)?;
+            } else {
+                index.add_file(&dir, entry)?;
             }
         }
         subdirs.sort_by(|&(_, ref a), &(_, ref b)| {
