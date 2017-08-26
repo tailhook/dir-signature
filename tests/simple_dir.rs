@@ -1,8 +1,7 @@
 extern crate dir_signature;
-extern crate difference;
+#[macro_use] extern crate difference;
 
 use dir_signature::{ScannerConfig, v1};
-use difference::assert_diff;
 
 
 #[test]
@@ -11,7 +10,7 @@ fn test_dir1() {
     cfg.add_dir("tests/dir1", "/");
     let mut buf = Vec::new();
     v1::scan(&cfg, &mut buf).unwrap();
-    assert_diff(&String::from_utf8_lossy(&buf), "\
+    assert_diff!(&String::from_utf8_lossy(&buf), "\
 DIRSIGNATURE.v1 sha512/256 block_size=32768
 /
   hello.txt f 6 a79eef66019bfb9a41f798f2cff2d2d36ed294cc3f96bf53bbfc5192ebe60192
@@ -29,7 +28,7 @@ fn test_dir2() {
     cfg.add_dir("tests/dir2", "/");
     let mut buf = Vec::new();
     v1::scan(&cfg, &mut buf).unwrap();
-    assert_diff(&String::from_utf8_lossy(&buf), "\
+    assert_diff!(&String::from_utf8_lossy(&buf), "\
 DIRSIGNATURE.v1 sha512/256 block_size=32768
 /
   file2.txt f 18 961cd6357f94b5bfe98fa4fde8aa25c4501e12923fd484a63bf4979d26d23ce1
@@ -49,7 +48,7 @@ fn test_dir1_dir2() {
     cfg.add_dir("tests/dir2", "/");
     let mut buf = Vec::new();
     v1::scan(&cfg, &mut buf).unwrap();
-    assert_diff(&String::from_utf8_lossy(&buf), "\
+    assert_diff!(&String::from_utf8_lossy(&buf), "\
 DIRSIGNATURE.v1 sha512/256 block_size=32768
 /
   file2.txt f 18 961cd6357f94b5bfe98fa4fde8aa25c4501e12923fd484a63bf4979d26d23ce1
