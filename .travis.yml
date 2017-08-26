@@ -9,6 +9,10 @@ cache:
 before_cache:
 - rm -r $TRAVIS_BUILD_DIR/target/debug
 
+env:
+- RUST_BACKTRACE=1
+
+
 jobs:
   include:
   - rust: stable
