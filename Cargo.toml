@@ -8,7 +8,7 @@ readme = "README.rst"
 keywords = ["dir", "signature", "file", "sync", "index"]
 homepage = "http://github.com/tailhook/dir-signature"
 documentation = "http://docs.rs/dir-signature"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["paul@colomiets.name"]
 
 [dependencies]
