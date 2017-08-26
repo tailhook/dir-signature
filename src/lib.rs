@@ -38,7 +38,7 @@ extern crate itertools;
 #[cfg(test)]
 #[macro_use] extern crate matches;
 #[cfg(test)]
-extern crate rustc_serialize;
+extern crate rustc_hex;
 
 
 pub mod v1;

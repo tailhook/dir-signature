@@ -1,8 +1,8 @@
 use std::io::{BufReader, Cursor, Seek, SeekFrom};
 use std::path::Path;
 
-extern crate rustc_serialize;
-use rustc_serialize::hex::FromHex;
+extern crate rustc_hex;
+use rustc_hex::FromHex;
 
 #[macro_use] extern crate matches;
 

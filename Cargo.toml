@@ -12,22 +12,22 @@ version = "0.2.0"
 authors = ["paul@colomiets.name"]
 
 [dependencies]
-argparse = "0.2.1"
 quick-error = "1.2.0"
 log = "0.3.6"
-env_logger = "0.3.5"
-rustc-serialize = "0.3.21"
-regex = "0.1.80"
 sha2 = "0.3.0"
 blake2 = "0.3.0"
 digest-writer = "0.1.0"
 generic-array = "0.5.1"
 typenum = "1.5.1"
 openat = "0.1.2"
-ignore = "0.1.6"
 num_cpus = "1.2.0"
 itertools = "0.5.8"
-difference = "0.4.1"
+
+# for `index` CLI tool
+env_logger = "0.3.5"
+argparse = "0.2.1"
 
 [dev-dependencies]
 matches = "0.1.4"
+rustc-hex = "1.0.0"
+difference = "0.4.1"

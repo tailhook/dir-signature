@@ -832,7 +832,7 @@ mod test {
     use std::io::Cursor;
     use std::path::Path;
 
-    use rustc_serialize::hex::FromHex;
+    use rustc_hex::FromHex;
 
     use ::HashType;
     use super::{Entry, Footer, Hashes, Header, ParseRowError};
