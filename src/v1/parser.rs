@@ -345,7 +345,7 @@ impl Footer {
 }
 
 /// List of hashes for an entry
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Hashes {
     data: Vec<u8>,
     hash_type: HashType,
