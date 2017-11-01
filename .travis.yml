@@ -33,3 +33,23 @@ jobs:
       script: 'cargo publish --verbose --token=$CARGO_TOKEN'
       on:
         tags: true
+
+  - stage: publish
+    install:
+    - rustup target add x86_64-unknown-linux-musl
+    - cargo build --target=x86_64-unknown-linux-musl --release
+    script: true
+    before_deploy: |
+      mkdir -p dist
+      fakeroot sh -ecx '
+        install -D target/x86_64-unknown-linux-musl/release/index pkg/usr/bin/dir-signature
+        tar -C pkg -czf dist/dir-signature-static-$TRAVIS_TAG.tar.gz usr
+      '
+    deploy:
+      provider: releases
+      api_key:
+        secure: "n7GmtIVZXtXZulS3pZ5S9k3r44xNWlz1vg3b0VSHN0VES6qXmVOWQ8qDXDgW2vy4L48fWkhXdAcGVkXZfv4d/sO5SmhjDrpEP/KDUHmiR08veeSSwZkKaKu1ILwktG4ZrCuqYyBm36THQ1XHafP5c96CV0iAeNyOhmejvhcU/fXwrftpauvkaYc8/V/t51OX70h5CyNGR9TfGDkyqOZic7rCg98ptHoWrpmYbsgLXX8HtYj58ZxjVjM4dbTjPn1SFxH1sWE9YttkKWEfhzyeiLaLR5jv1tJGSIlHo/7m2AEfCRbcwy3C3YssdxMFDuY9RtLZftNLG5wXT8sHvN/tRhhFsXK+a/+ZPCG5Z6Jj1wBOJik+guZLXjaxv6KNmSxFOpSHjwf4ZmlXq/oVfMhyXplKHEGFtYeROqlNwY+Ku6u55SdeQdOM6TtadDy67KdCJ+GTvTJ+9ax21tLUegxvdbXtIYUNWN0tpuqWC0d1uhsV6FVZtxaeGNLCz+TkXMTTFUl23825wNCKmgz7sj1gRiCYgHYk0cTOy5luYXvKdVYy278f+rG3S743gYRXI6vqD1HBXOgB8dZ0YlHOIJ7x6evPh9eIk8XRok4sZCi0hr5ukFyOXnhlHfQFJNwys9QcBlJPVSVjBEQAVQ009vf3K3j1+ivPnXv9ASSCWg9NY+U="
+      file: "dist/dir-signature-static-$TRAVIS_TAG.tar.gz"
+      skip_cleanup: true
+      on:
+        tags: true
