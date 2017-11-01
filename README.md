@@ -1,9 +1,11 @@
-=============
 Dir Signature
 =============
 
-:Status: Alpha
-:Documentation: http://docs.rs/dir-signature/
+**Status: Beta**
+
+[Documentation](https://docs.rs/dir-signature) |
+[Github](https://github.com/tailhook/dir-signature) |
+[Crate](https://crates.io/crates/dir-signature)
 
 
 This crate allows to create a signature (index) of a directory with files,

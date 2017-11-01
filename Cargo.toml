@@ -4,8 +4,9 @@ description = """
     This crate allows to create a signature (index) of a directory with files.
 """
 license = "MIT/Apache-2.0"
-readme = "README.rst"
+readme = "README.md"
 keywords = ["dir", "signature", "file", "sync", "index"]
+categories = ["algorithms", "filesystem"]
 homepage = "http://github.com/tailhook/dir-signature"
 documentation = "http://docs.rs/dir-signature"
 version = "0.2.1"
