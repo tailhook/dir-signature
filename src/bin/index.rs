@@ -2,7 +2,7 @@
 extern crate argparse;
 extern crate env_logger;
 extern crate dir_signature;
-extern crate num_cpus;
+#[cfg(feature="threads")] extern crate num_cpus;
 
 use std::io::{self, Write};
 use std::env;
@@ -11,9 +11,15 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 
 use argparse::{ArgumentParser, List, ParseOption, Store, StoreTrue, StoreFalse};
+#[cfg(feature="threads")]
+use num_cpus::get as get_num_cpus;
 
 use dir_signature::{v1, ScannerConfig, HashType};
 
+#[cfg(not(feature="threads"))]
+fn get_num_cpus() -> usize {
+    1
+}
 
 pub fn run() -> i32 {
     if let Err(_) = env::var("RUST_LOG") {
@@ -22,7 +28,7 @@ pub fn run() -> i32 {
     env_logger::init().unwrap();
 
     let mut index = None::<PathBuf>;
-    let mut threads = num_cpus::get();
+    let mut threads = get_num_cpus();
     let mut dirs = Vec::<String>::new();
     let mut hash_type = HashType::sha512_256();
     let mut progress = true;
@@ -51,10 +57,18 @@ pub fn run() -> i32 {
                 "Use specified hasher.
                  Options: `sha512/256` (default), `blake2b/256`.")
             .metavar("HASH");
+        #[cfg(feature="threads")]
         ap.refer(&mut threads)
             .add_option(&["-t", "--threads"], Store,
-                "Number of threads to use for scanning (defaults to a number
-                of CPUs (cores) on the machine")
+                "Number of threads to use for hashing files (defaults to a
+                number of CPUs (cores) on the machine. Utility will use
+                another thread to scan directories. Setting to 0 will use
+                a single thread both for scanning and calculating hashes.")
+            .metavar("NUM");
+        #[cfg(not(feature="threads"))]
+        ap.refer(&mut threads)
+            .add_option(&["-t", "--threads"], Store,
+                "Does nothing as thread support was disabled at complie time")
             .metavar("NUM");
         match ap.parse_args() {
             Ok(()) => {}
@@ -63,7 +77,7 @@ pub fn run() -> i32 {
     }
 
     let mut cfg = ScannerConfig::new();
-    cfg.threads(threads);
+    cfg.threads(threads + 1);
     cfg.hash(hash_type);
     if progress {
         cfg.print_progress();

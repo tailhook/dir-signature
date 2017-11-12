@@ -10,9 +10,15 @@ commands:
     container: ubuntu
     run: [cargo]
 
+  _test-no-features: !Command
+    description: Run tests
+    container: ubuntu
+    run: [cargo, test, --no-default-features]
+
   test: !Command
     description: Run tests
     container: ubuntu
+    prerequisites: [_test-no-features]
     run: [cargo, test]
 
   gen-test-data: !Command

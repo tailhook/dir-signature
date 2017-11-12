@@ -25,8 +25,10 @@ impl ScannerConfig {
     }
     /// Set number of threads to use for scanning
     ///
-    /// Default is 1 which means don't create additional threads run scanning
-    /// in current one
+    /// Default is 0 which means don't create additional threads and do
+    /// hashing and directory scanning in current thread. Otherwise we will
+    /// create num threads for hashing and will use current thread for
+    /// scanning directories and priting progress.
     pub fn threads(&mut self, num: usize) -> &mut Self {
         self.threads = num;
         self

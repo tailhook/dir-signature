@@ -21,12 +21,19 @@ digest-writer = "0.1.0"
 generic-array = "0.5.1"
 typenum = "1.5.1"
 openat = "0.1.2"
-num_cpus = "1.2.0"
 itertools = "0.6.1"
+
+num_cpus = { version="1.2.0", optional=true }
+futures = { version="0.1.17", optional=true }
+futures-cpupool = { version="0.1.7", optional=true }
 
 # for `index` CLI tool
 env_logger = "0.4.3"
 argparse = "0.2.1"
+
+[features]
+default = ["threads"]
+threads = ["futures", "futures-cpupool", "num_cpus"]
 
 [dev-dependencies]
 matches = "0.1.4"
