@@ -12,7 +12,7 @@ use digest_writer::Writer as DWriter;
 static LOWER_CHARS: &'static[u8] = b"0123456789abcdef";
 
 
-pub trait Hash {
+pub trait Hash: Copy + Send + Sync + 'static {
     type Output: FixedOutput + fmt::LowerHex;
     type Digest: Digest;
     fn name(&self) -> &str;
@@ -34,9 +34,11 @@ pub trait FixedOutput {
 }
 
 #[allow(non_camel_case_types)]
+#[derive(Clone, Copy, Debug)]
 pub struct Sha512_256;
 
 #[allow(non_camel_case_types)]
+#[derive(Clone, Copy, Debug)]
 pub struct Blake2b_256;
 
 #[allow(non_camel_case_types)]

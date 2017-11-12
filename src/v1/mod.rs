@@ -15,6 +15,7 @@ mod hash;
 mod scan;
 mod parser;
 pub mod merge;
+#[cfg(feature="threads")] mod threaded_writer;
 
 use std::io;
 
@@ -25,6 +26,7 @@ pub use self::parser::{ParseError};
 
 use self::progress::Progress;
 use self::writer::{Writer, SyncWriter};
+use v1::hash::Hash;
 use {ScannerConfig, HashTypeEnum};
 
 /// Create an index using specified config
@@ -46,18 +48,38 @@ fn add_progress<W: Writer>(config: &ScannerConfig, mut out: W)
     }
 }
 
+#[cfg(not(feature="threads"))]
+fn add_threads<O, H: Hash>(config: &ScannerConfig, hash: H, out: &mut O)
+    -> Result<(), Error>
+    where O: io::Write,
+{
+    add_progress(config, SyncWriter::new(out, hash, config.block_size)?)
+}
+
+#[cfg(feature="threads")]
+fn add_threads<O, H: Hash>(config: &ScannerConfig, hash: H, out: &mut O)
+    -> Result<(), Error>
+    where O: io::Write,
+{
+    if config.threads > 1 {
+        add_progress(config, threaded_writer::ThreadedWriter::new(
+            config.threads,
+            out, hash, config.block_size)?)
+    } else {
+        add_progress(config, SyncWriter::new(out, hash, config.block_size)?)
+    }
+}
+
 fn add_hash<O>(config: &ScannerConfig, out: &mut O)
     -> Result<(), Error>
     where O: io::Write,
 {
     match config.hash.0 {
         HashTypeEnum::Sha512_256 => {
-            add_progress(config, SyncWriter::new(out,
-                hash::Sha512_256, config.block_size)?)
+            add_threads(config, hash::Sha512_256, out)
         }
         HashTypeEnum::Blake2b_256 => {
-            add_progress(config, SyncWriter::new(out,
-                hash::Blake2b_256, config.block_size)?)
+            add_threads(config, hash::Blake2b_256, out)
         }
     }
 }

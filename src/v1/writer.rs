@@ -13,12 +13,12 @@ use error::Error::{self, WriteError as EWrite, ReadFile as EFile};
 use super::hash::Hash;
 
 
-struct Name<'a>(&'a Path);
+pub(crate) struct Name<'a>(pub &'a Path);
 
-const EXE_MASK: u32 = 0o100;
+pub(crate) const EXE_MASK: u32 = 0o100;
 
-pub const MAGIC: &'static str = "DIRSIGNATURE";
-pub const VERSION: &'static str = "v1";
+pub(crate) const MAGIC: &'static str = "DIRSIGNATURE";
+pub(crate) const VERSION: &'static str = "v1";
 
 
 pub trait Writer {
@@ -29,12 +29,12 @@ pub trait Writer {
     fn done(&mut self) -> Result<(), Error>;
 }
 
-pub struct HashWriter<F, H> {
-    file: F,
-    digest: H,
+pub(crate) struct HashWriter<F, H> {
+    pub(crate) file: F,
+    pub(crate) digest: H,
 }
 
-pub struct SyncWriter<F, H: Hash> {
+pub(crate) struct SyncWriter<F, H: Hash> {
     file: HashWriter<F, H::Digest>,
     block_size: u64,
     hash: H,
