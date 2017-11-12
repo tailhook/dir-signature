@@ -24,7 +24,7 @@ pub use self::parser::{Header, Entry, EntryKind, Parser, EntryIterator};
 pub use self::parser::{ParseError};
 
 use self::progress::Progress;
-use self::writer::SyncWriter;
+use self::writer::{Writer, SyncWriter};
 use {ScannerConfig, HashTypeEnum};
 
 /// Create an index using specified config
@@ -33,33 +33,31 @@ use {ScannerConfig, HashTypeEnum};
 pub fn scan<F: io::Write>(config: &ScannerConfig, out: &mut F)
     -> Result<(), Error>
 {
+    add_hash(config, out)
+}
+
+fn add_progress<W: Writer>(config: &ScannerConfig, mut out: W)
+    -> Result<(), Error>
+{
     if config.print_progress {
-        match config.hash.0 {
-            HashTypeEnum::Sha512_256 => {
-                scan::scan(config,
-                    &mut Progress::new(io::stderr(),
-                        SyncWriter::new(out,
-                            hash::Sha512_256, config.block_size)?))
-            }
-            HashTypeEnum::Blake2b_256 => {
-                scan::scan(config,
-                    &mut Progress::new(io::stderr(),
-                        SyncWriter::new(out,
-                            hash::Blake2b_256, config.block_size)?))
-            }
-        }
+        scan::scan(config, &mut Progress::new(io::stderr(), out))
     } else {
-        match config.hash.0 {
-            HashTypeEnum::Sha512_256 => {
-                scan::scan(config,
-                    &mut SyncWriter::new(out,
-                        hash::Sha512_256, config.block_size)?)
-            }
-            HashTypeEnum::Blake2b_256 => {
-                scan::scan(config,
-                    &mut SyncWriter::new(out,
-                        hash::Blake2b_256, config.block_size)?)
-            }
+        scan::scan(config, &mut out)
+    }
+}
+
+fn add_hash<O>(config: &ScannerConfig, out: &mut O)
+    -> Result<(), Error>
+    where O: io::Write,
+{
+    match config.hash.0 {
+        HashTypeEnum::Sha512_256 => {
+            add_progress(config, SyncWriter::new(out,
+                hash::Sha512_256, config.block_size)?)
+        }
+        HashTypeEnum::Blake2b_256 => {
+            add_progress(config, SyncWriter::new(out,
+                hash::Blake2b_256, config.block_size)?)
         }
     }
 }
