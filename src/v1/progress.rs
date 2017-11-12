@@ -18,6 +18,10 @@ pub struct Progress<W, S> {
     started: Instant,
 }
 
+fn duration_float(d: Duration) -> f64 {
+    d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.
+}
+
 impl<W: Writer, S: io::Write> Progress<W, S> {
     pub fn new(out: S, hasher: W) -> Progress<W, S> {
         Progress {
@@ -42,9 +46,10 @@ impl<W: Writer, S: io::Write> Progress<W, S> {
     }
     pub fn print_final(&mut self) {
         write!(&mut self.progress_dest,
-            "Done. Indexed {} dirs, {} files, {} symlinks in {} sec.\n",
+            "Done. Indexed {} dirs, {} files, {} symlinks in {:.3} sec.\n",
             self.dirs, self.files, self.symlinks,
-            (Instant::now() - self.started).as_secs()).ok();
+            duration_float(Instant::now().duration_since(self.started)),
+            ).ok();
         self.progress_dest.flush().ok();
     }
 }
