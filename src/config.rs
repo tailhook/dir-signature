@@ -29,8 +29,27 @@ impl ScannerConfig {
     /// hashing and directory scanning in current thread. Otherwise we will
     /// create num threads for hashing and will use current thread for
     /// scanning directories and priting progress.
+    ///
+    /// This parameter is ignored if "threads" feature is disabled
     pub fn threads(&mut self, num: usize) -> &mut Self {
         self.threads = num;
+        self
+    }
+
+    /// Set number of threads to the number of CPU cores on the system
+    ///
+    /// This method does nothing if "threads" feature is disabled
+    #[cfg(feature="threads")]
+    pub fn auto_threads(&mut self) -> &mut Self {
+        self.threads = ::num_cpus::get();
+        self
+    }
+
+    /// Set number of threads to the number of CPU cores on the system
+    ///
+    /// This method does nothing if "threads" feature is disabled
+    #[cfg(not(feature="threads"))]
+    pub fn auto_threads(&mut self) -> &mut Self {
         self
     }
     /// Set number of index entries that can be queued in the background

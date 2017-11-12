@@ -35,6 +35,7 @@ extern crate itertools;
 #[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
 
+#[cfg(feature="threads")] extern crate num_cpus;
 #[cfg(feature="threads")] extern crate futures;
 #[cfg(feature="threads")] extern crate futures_cpupool;
 
