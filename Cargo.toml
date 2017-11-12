@@ -31,6 +31,9 @@ futures-cpupool = { version="0.1.7", optional=true }
 env_logger = "0.4.3"
 argparse = "0.2.1"
 
+[profile.release]
+lto=true
+
 [features]
 default = ["threads"]
 threads = ["futures", "futures-cpupool", "num_cpus"]
