@@ -389,7 +389,7 @@ impl Hashes {
     {
         for orig_hash in self.iter() {
             let hash = h.hash_file(&mut f, self.block_size)?;
-            if orig_hash != &hash.result()[..] {
+            if orig_hash != hash.result() {
                 return Ok(false);
             }
         }
