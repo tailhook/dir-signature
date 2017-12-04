@@ -44,14 +44,6 @@ impl<W: Writer, S: io::Write> Progress<W, S> {
             self.progress_dest.flush().ok();
         }
     }
-    pub fn print_final(&mut self) {
-        write!(&mut self.progress_dest,
-            "Done. Indexed {} dirs, {} files, {} symlinks in {:.3} sec.\n",
-            self.dirs, self.files, self.symlinks,
-            duration_float(Instant::now().duration_since(self.started)),
-            ).ok();
-        self.progress_dest.flush().ok();
-    }
 }
 
 
@@ -76,9 +68,14 @@ impl<W: Writer, S: io::Write> Writer for Progress<W, S> {
         self.check_print();
         Ok(())
     }
-    fn done(&mut self) -> Result<(), Error> {
+    fn done(mut self) -> Result<(), Error> {
         self.dest.done()?;
-        self.print_final();
+        write!(&mut self.progress_dest,
+            "Done. Indexed {} dirs, {} files, {} symlinks in {:.3} sec.\n",
+            self.dirs, self.files, self.symlinks,
+            duration_float(Instant::now().duration_since(self.started)),
+            ).ok();
+        self.progress_dest.flush().ok();
         Ok(())
     }
 }

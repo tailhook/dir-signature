@@ -13,17 +13,16 @@ version = "0.2.3"
 authors = ["paul@colomiets.name"]
 
 [dependencies]
-quick-error = "1.2.0"
-log = "0.3.6"
-sha2 = "0.3.0"
-blake2 = "0.3.0"
-digest-writer = "0.1.0"
-generic-array = "0.5.1"
-typenum = "1.5.1"
-openat = "0.1.2"
-itertools = "0.6.1"
+quick-error = "1.2.1"
+log = "0.3.8"
+sha2 = "0.7.0"
+blake2 = "0.7.0"
+digest-writer = "0.3.1"
+generic-array = "0.9.0"
+openat = "0.1.12"
+itertools = "0.7.3"
 
-num_cpus = { version="1.2.0", optional=true }
+num_cpus = { version="1.7.0", optional=true }
 futures = { version="0.1.17", optional=true }
 futures-cpupool = { version="0.1.7", optional=true }
 
@@ -39,6 +38,6 @@ default = ["threads"]
 threads = ["futures", "futures-cpupool", "num_cpus"]
 
 [dev-dependencies]
-matches = "0.1.4"
+matches = "0.1.6"
 rustc-hex = "1.0.0"
 difference = "1.0.0"

@@ -2,9 +2,9 @@ use std::io;
 use std::fmt;
 use std::str;
 
-use sha2::{self, Digest};
+use sha2::{self, Digest, Sha512Trunc256};
 use blake2::Blake2b;
-use typenum::U32;
+use blake2::digest::{VariableOutput, FixedOutput};
 use generic_array::GenericArray;
 use digest_writer::Writer as DWriter;
 
@@ -13,11 +13,11 @@ static LOWER_CHARS: &'static[u8] = b"0123456789abcdef";
 
 
 pub trait Hash: Copy + Send + Sync + 'static {
-    type Output: FixedOutput + fmt::LowerHex;
+    type Output: HashOutput + fmt::LowerHex;
     type Digest: Digest;
     fn name(&self) -> &str;
     fn total_hasher(&self) -> Self::Digest;
-    fn total_hash(&self, d: &Self::Digest) -> Self::Output;
+    fn total_hash(&self, d: Self::Digest) -> Self::Output;
 
     fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
         -> io::Result<Self::Output>
@@ -25,12 +25,12 @@ pub trait Hash: Copy + Send + Sync + 'static {
         let mut digest = DWriter::new(self.total_hasher());
         io::copy(&mut f.take(block_size), &mut digest)?;
         let d = digest.into_inner();
-        Ok(self.total_hash(&d))
+        Ok(self.total_hash(d))
     }
 }
 
-pub trait FixedOutput {
-    fn fixed_result(self) -> GenericArray<u8, U32>;
+pub trait HashOutput {
+    fn result(&self) -> &[u8];
 }
 
 #[allow(non_camel_case_types)]
@@ -42,10 +42,10 @@ pub struct Sha512_256;
 pub struct Blake2b_256;
 
 #[allow(non_camel_case_types)]
-pub struct Sha512_256_Res(GenericArray<u8, U32>);
+pub struct Sha512_256_Res(GenericArray<u8, <Sha512Trunc256 as FixedOutput>::OutputSize>);
 
 #[allow(non_camel_case_types)]
-pub struct Blake2b_256_Res(GenericArray<u8, U32>);
+pub struct Blake2b_256_Res([u8; 32]);
 
 impl Hash for Sha512_256 {
     type Output = Sha512_256_Res;
@@ -56,34 +56,36 @@ impl Hash for Sha512_256 {
     fn total_hasher(&self) -> Self::Digest {
         sha2::Sha512Trunc256::new()
     }
-    fn total_hash(&self, d: &Self::Digest) -> Self::Output {
-        Sha512_256_Res(d.result())
+    fn total_hash(&self, d: Self::Digest) -> Self::Output {
+        Sha512_256_Res(d.fixed_result())
     }
 }
 
 impl Hash for Blake2b_256 {
     type Output = Blake2b_256_Res;
-    type Digest = Blake2b<U32>;
+    type Digest = Blake2b;
     fn name(&self) -> &str {
         "blake2b/256"
     }
     fn total_hasher(&self) -> Self::Digest {
-        Blake2b::new()
+        VariableOutput::new(32).expect("Valid length")
     }
-    fn total_hash(&self, d: &Self::Digest) -> Self::Output {
-        Blake2b_256_Res(d.result())
-    }
-}
-
-impl FixedOutput for Sha512_256_Res {
-    fn fixed_result(self) -> GenericArray<u8, U32> {
-        GenericArray::from_slice(&self.0[..32])
+    fn total_hash(&self, d: Self::Digest) -> Self::Output {
+        let mut val = [0u8; 32];
+        d.variable_result(&mut val).expect("valid length");
+        Blake2b_256_Res(val)
     }
 }
 
-impl FixedOutput for Blake2b_256_Res {
-    fn fixed_result(self) -> GenericArray<u8, U32> {
-        self.0
+impl HashOutput for Sha512_256_Res {
+    fn result(&self) -> &[u8] {
+        &self.0[..]
+    }
+}
+
+impl HashOutput for Blake2b_256_Res {
+    fn result(&self) -> &[u8] {
+        &self.0[..]
     }
 }
 

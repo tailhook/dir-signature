@@ -38,13 +38,13 @@ pub fn scan<F: io::Write>(config: &ScannerConfig, out: &mut F)
     add_hash(config, out)
 }
 
-fn add_progress<W: Writer>(config: &ScannerConfig, mut out: W)
+fn add_progress<W: Writer>(config: &ScannerConfig, out: W)
     -> Result<(), Error>
 {
     if config.print_progress {
-        scan::scan(config, &mut Progress::new(io::stderr(), out))
+        scan::scan(config, Progress::new(io::stderr(), out))
     } else {
-        scan::scan(config, &mut out)
+        scan::scan(config, out)
     }
 }
 

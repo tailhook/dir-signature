@@ -154,11 +154,11 @@ impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H> {
         self.queue.push_back(Operation::Symlink(dir.clone(), entry));
         self.poll_queue()
     }
-    fn done(&mut self) -> Result<(), Error>
+    fn done(mut self) -> Result<(), Error>
     {
         self.wait_queue()?;
         write!(&mut self.file.file, "{:x}\n",
-            self.hash.total_hash(&self.file.digest)
+            self.hash.total_hash(self.file.digest)
         ).map_err(EFile)
     }
 }

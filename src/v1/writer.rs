@@ -26,7 +26,7 @@ pub trait Writer {
     fn add_file(&mut self, dir: &Arc<Dir>, entry: Entry) -> Result<(), Error>;
     fn add_symlink(&mut self, dir: &Arc<Dir>, entry: Entry)
         -> Result<(), Error>;
-    fn done(&mut self) -> Result<(), Error>;
+    fn done(self) -> Result<(), Error>;
 }
 
 pub(crate) struct HashWriter<F, H> {
@@ -75,10 +75,10 @@ impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
         ).map_err(EWrite)?;
         Ok(())
     }
-    fn done(&mut self) -> Result<(), Error>
+    fn done(mut self) -> Result<(), Error>
     {
         write!(&mut self.file.file, "{:x}\n",
-            self.hash.total_hash(&self.file.digest)
+            self.hash.total_hash(self.file.digest)
         ).map_err(EFile)
     }
 }

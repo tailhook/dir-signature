@@ -13,7 +13,7 @@ use quick_error::ResultExt;
 
 use ::HashType;
 use super::writer::{MAGIC, VERSION};
-use super::hash::{self, FixedOutput};
+use super::hash::{self, HashOutput};
 
 quick_error! {
     /// The error type that represents errors which can happen when parsing
@@ -389,7 +389,7 @@ impl Hashes {
     {
         for orig_hash in self.iter() {
             let hash = h.hash_file(&mut f, self.block_size)?;
-            if orig_hash != &hash.fixed_result()[..] {
+            if orig_hash != &hash.result()[..] {
                 return Ok(false);
             }
         }

@@ -28,7 +28,7 @@ fn find_roots(config: &ScannerConfig)
     return Ok(root);
 }
 
-pub fn scan<W: Writer>(config: &ScannerConfig, index: &mut W)
+pub fn scan<W: Writer>(config: &ScannerConfig, mut index: W)
     -> Result<(), Error>
 {
     use openat::SimpleType as T;
