@@ -25,7 +25,7 @@ pub fn run() -> i32 {
     if let Err(_) = env::var("RUST_LOG") {
         env::set_var("RUST_LOG", "warn");
     }
-    env_logger::init().unwrap();
+    env_logger::init();
 
     let mut index = None::<PathBuf>;
     let mut threads = get_num_cpus();
