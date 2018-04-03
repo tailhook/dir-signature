@@ -47,7 +47,10 @@ impl<W: Writer, S: io::Write> Progress<W, S> {
 }
 
 
-impl<W: Writer, S: io::Write> Writer for Progress<W, S> {
+impl<W: Writer, S: io::Write> Writer for Progress<W, S>
+    where W::TotalHash: ::std::fmt::LowerHex,
+{
+    type TotalHash = W::TotalHash;
     fn start_dir(&mut self, path: &Path) -> Result<(), Error> {
         self.dirs += 1;
         self.dest.start_dir(path)?;
@@ -68,11 +71,16 @@ impl<W: Writer, S: io::Write> Writer for Progress<W, S> {
         self.check_print();
         Ok(())
     }
+    fn get_hash(&mut self) -> Result<Self::TotalHash, Error> {
+        self.dest.get_hash()
+    }
     fn done(mut self) -> Result<(), Error> {
+        let hash = self.get_hash()?;
         self.dest.done()?;
         write!(&mut self.progress_dest,
-            "Done. Indexed {} dirs, {} files, {} symlinks in {:.3} sec.\n",
-            self.dirs, self.files, self.symlinks,
+            "Done {:.8x}. Indexed {} dirs, \
+             {} files, {} symlinks in {:.3} sec.\n",
+            hash, self.dirs, self.files, self.symlinks,
             duration_float(Instant::now().duration_since(self.started)),
             ).ok();
         self.progress_dest.flush().ok();

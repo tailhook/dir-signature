@@ -22,10 +22,12 @@ pub(crate) const VERSION: &'static str = "v1";
 
 
 pub trait Writer {
+    type TotalHash;
     fn start_dir(&mut self, path: &Path) -> Result<(), Error>;
     fn add_file(&mut self, dir: &Arc<Dir>, entry: Entry) -> Result<(), Error>;
     fn add_symlink(&mut self, dir: &Arc<Dir>, entry: Entry)
         -> Result<(), Error>;
+    fn get_hash(&mut self) -> Result<Self::TotalHash, Error>;
     fn done(self) -> Result<(), Error>;
 }
 
@@ -40,7 +42,10 @@ pub(crate) struct SyncWriter<F, H: Hash> {
     hash: H,
 }
 
-impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
+impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H>
+    where H::Digest: Clone,
+{
+    type TotalHash = H::Output;
     fn start_dir(&mut self, path: &Path) -> Result<(), Error> {
         writeln!(&mut self.file, "{}", Name(path)).map_err(EWrite)?;
         Ok(())
@@ -75,11 +80,13 @@ impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
         ).map_err(EWrite)?;
         Ok(())
     }
+    fn get_hash(&mut self) -> Result<H::Output, Error> {
+        Ok(self.hash.total_hash(self.file.digest.clone()))
+    }
     fn done(mut self) -> Result<(), Error>
     {
-        write!(&mut self.file.file, "{:x}\n",
-            self.hash.total_hash(self.file.digest)
-        ).map_err(EFile)
+        let hash = self.get_hash()?;
+        write!(&mut self.file.file, "{:x}\n", hash).map_err(EFile)
     }
 }
 

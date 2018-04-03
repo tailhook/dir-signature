@@ -40,6 +40,7 @@ pub fn scan<F: io::Write>(config: &ScannerConfig, out: &mut F)
 
 fn add_progress<W: Writer>(config: &ScannerConfig, out: W)
     -> Result<(), Error>
+    where W::TotalHash: ::std::fmt::LowerHex,
 {
     if config.print_progress {
         scan::scan(config, Progress::new(io::stderr(), out))
@@ -51,7 +52,7 @@ fn add_progress<W: Writer>(config: &ScannerConfig, out: W)
 #[cfg(not(feature="threads"))]
 fn add_threads<O, H: Hash>(config: &ScannerConfig, hash: H, out: &mut O)
     -> Result<(), Error>
-    where O: io::Write,
+    where O: io::Write, H::Digest: Clone,
 {
     add_progress(config, SyncWriter::new(out, hash, config.block_size)?)
 }
@@ -60,6 +61,7 @@ fn add_threads<O, H: Hash>(config: &ScannerConfig, hash: H, out: &mut O)
 fn add_threads<O, H: Hash>(config: &ScannerConfig, hash: H, out: &mut O)
     -> Result<(), Error>
     where O: io::Write,
+          H::Digest: Clone,
 {
     if config.threads > 1 {
         add_progress(config, threaded_writer::ThreadedWriter::new(

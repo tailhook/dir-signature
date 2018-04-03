@@ -115,7 +115,10 @@ impl<F: io::Write, H: Hash> ThreadedWriter<F, H> {
     }
 }
 
-impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H> {
+impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H>
+    where H::Digest: Clone,
+{
+    type TotalHash = H::Output;
     fn start_dir(&mut self, path: &Path) -> Result<(), Error> {
         // TODO(tailhook) optimize allocation if no queue is present
         self.queue.push_back(Operation::StartDir(path.to_path_buf()));
@@ -154,12 +157,14 @@ impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H> {
         self.queue.push_back(Operation::Symlink(dir.clone(), entry));
         self.poll_queue()
     }
+    fn get_hash(&mut self) -> Result<Self::TotalHash, Error> {
+        self.wait_queue()?;
+        Ok(self.hash.total_hash(self.file.digest.clone()))
+    }
     fn done(mut self) -> Result<(), Error>
     {
-        self.wait_queue()?;
-        write!(&mut self.file.file, "{:x}\n",
-            self.hash.total_hash(self.file.digest)
-        ).map_err(EFile)
+        let hash = self.get_hash()?;
+        write!(&mut self.file.file, "{:x}\n", hash).map_err(EFile)
     }
 }
 
