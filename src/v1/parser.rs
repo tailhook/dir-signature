@@ -373,9 +373,10 @@ impl Hashes {
     /// Get hash by index
     pub fn get(&self, idx: usize) -> Option<&[u8]> {
         let bytes = self.hash_type.output_bytes();
-        let off = bytes.saturating_add(idx);
-        if self.data.len() <= off.saturating_add(bytes) {
-            return Some(&self.data[off..off+bytes]);
+        let off = bytes.checked_mul(idx)?;
+        let end = off.checked_add(bytes)?;
+        if end <= self.data.len() {
+            return Some(&self.data[off..end]);
         } else {
             return None;
         }
@@ -1030,6 +1031,29 @@ mod test {
                 Err(ParseRowError::InvalidHash(ref msg))
                 if msg.starts_with("Expected hash with length of 64:")),
             "Result was: {:?}", res);
+    }
+
+    #[test]
+    fn hashes_get() {
+        let hashes = Hashes::new(
+            b"\x3D\x37\xFE\x58\x43\x5E\x0D\x87\x32\x3D\xEE\x4A\x2C\x1B\x33\x9E\
+              \xF9\x54\xDE\x63\x71\x6E\xE7\x9F\x57\x47\xF9\x4D\x97\x4F\x91\x3F".to_vec(),
+            HashType::sha512_256(),
+            4);
+        assert!(hashes.get(0).is_some());
+        assert!(hashes.get(1).is_none());
+
+        let hashes = Hashes::new(
+            b"\x3D\x37\xFE\x58\x43\x5E\x0D\x87\x32\x3D\xEE\x4A\x2C\x1B\x33\x9E\
+              \xF9\x54\xDE\x63\x71\x6E\xE7\x9F\x57\x47\xF9\x4D\x97\x4F\x91\x3F\
+              \x3D\x37\xFE\x58\x43\x5E\x0D\x87\x32\x3D\xEE\x4A\x2C\x1B\x33\x9E\
+              \xF9\x54\xDE\x63\x71\x6E\xE7\x9F\x57\x47\xF9\x4D\x97\x4F\x91\x3F"
+              .to_vec(),
+            HashType::sha512_256(),
+            4);
+        assert!(hashes.get(0).is_some());
+        assert!(hashes.get(1).is_some());
+        assert!(hashes.get(2).is_none());
     }
 
     #[test]
