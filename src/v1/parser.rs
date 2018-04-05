@@ -370,6 +370,22 @@ impl Hashes {
         self.data.len() / self.hash_type.output_bytes()
     }
 
+    /// Get hash by index
+    pub fn get(&self, idx: usize) -> Option<&[u8]> {
+        let bytes = self.hash_type.output_bytes();
+        let off = bytes.saturating_add(idx);
+        if self.data.len() <= off.saturating_add(bytes) {
+            return Some(&self.data[off..off+bytes]);
+        } else {
+            return None;
+        }
+    }
+
+    /// Original block size of file (size that is represented by a single hash)
+    pub fn block_size(&self) -> u64 {
+        return self.block_size
+    }
+
     /// Returns iterator over hashes
     pub fn iter<'a>(&'a self) -> HashesIter<'a> {
         HashesIter(self.data.chunks(self.hash_type.output_bytes()))
