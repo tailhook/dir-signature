@@ -27,6 +27,15 @@ pub trait Hash: Copy + Send + Sync + 'static {
         let d = digest.into_inner();
         Ok(self.total_hash(d))
     }
+
+    fn hash_and_size<F: io::Read>(&self, f: F, block_size: u64)
+        -> io::Result<(u64, Self::Output)>
+    {
+        let mut digest = DWriter::new(self.total_hasher());
+        let bytes = io::copy(&mut f.take(block_size), &mut digest)?;
+        let d = digest.into_inner();
+        Ok((bytes, self.total_hash(d)))
+    }
 }
 
 pub trait HashOutput {

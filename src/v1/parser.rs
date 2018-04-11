@@ -384,12 +384,51 @@ impl Hashes {
 
     /// Original block size of file (size that is represented by a single hash)
     pub fn block_size(&self) -> u64 {
-        return self.block_size
+        self.block_size
+    }
+
+    /// Original hash type of the index
+    pub fn hash_type(&self) -> HashType {
+        self.hash_type
     }
 
     /// Returns iterator over hashes
     pub fn iter<'a>(&'a self) -> HashesIter<'a> {
         HashesIter(self.data.chunks(self.hash_type.output_bytes()))
+    }
+
+    /// Creates and instance by hashing a file
+    ///
+    /// Returns size and hashes
+    pub fn hash_file<R: io::Read>(hash: HashType, block_size: u64, f: R)
+        -> io::Result<(u64, Hashes)>
+    {
+        use HashTypeEnum::*;
+        match hash.0 {
+            Sha512_256 => {
+                Hashes::_hash_file(f, hash::Sha512_256, block_size, hash)
+            }
+            Blake2b_256 => {
+                Hashes::_hash_file(f, hash::Blake2b_256, block_size, hash)
+            }
+        }
+    }
+
+    fn _hash_file<R: io::Read, H: hash::Hash>(mut f: R, h: H,
+        block_size: u64, typ: HashType)
+        -> io::Result<(u64, Hashes)>
+    {
+        let mut buf = Vec::new();
+        let mut size = 0;
+        loop {
+            let (bs, hash) = h.hash_and_size(&mut f, block_size)?;
+            buf.extend(hash.result());
+            size += bs;
+            if bs < block_size {
+                break;
+            }
+        }
+        Ok((size, Hashes::new(buf, typ, block_size)))
     }
 
     /// Checks whether file has the same hash
@@ -1081,6 +1120,19 @@ mod test {
         assert!(!hashes.check_file(Cursor::new(b"tes1")).unwrap());
         assert!(!hashes.check_file(Cursor::new(b"tes")).unwrap());
         assert!(!hashes.check_file(Cursor::new(b"test123")).unwrap());
+    }
+
+    #[test]
+    fn test_hashes_hashfile() {
+        let (size, hashes) = Hashes::hash_file(
+            HashType::sha512_256(), 4, &b"test"[..]).unwrap();
+        assert!(hashes.check_file(&b"test"[..]).unwrap());
+        assert_eq!(size, 4);
+
+        let (size, hashes) = Hashes::hash_file(
+            HashType::sha512_256(), 4, &b"abctest"[..]).unwrap();
+        assert!(hashes.check_file(&b"abctest"[..]).unwrap());
+        assert_eq!(size, 7);
     }
 
     #[test]
