@@ -37,6 +37,7 @@ extern crate itertools;
 #[cfg(feature="threads")] extern crate num_cpus;
 #[cfg(feature="threads")] extern crate futures;
 #[cfg(feature="threads")] extern crate futures_cpupool;
+#[cfg(test)] #[macro_use] extern crate pretty_assertions;
 
 #[cfg(test)]
 #[macro_use] extern crate matches;

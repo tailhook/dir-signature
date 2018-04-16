@@ -9,7 +9,7 @@ use generic_array::GenericArray;
 use digest_writer::Writer as DWriter;
 
 
-static LOWER_CHARS: &'static[u8] = b"0123456789abcdef";
+pub(crate) static LOWER_CHARS: &'static[u8] = b"0123456789abcdef";
 
 
 pub trait Hash: Copy + Send + Sync + 'static {

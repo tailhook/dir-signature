@@ -14,6 +14,7 @@ mod progress;
 mod hash;
 mod scan;
 mod parser;
+mod emitter;
 pub mod merge;
 #[cfg(feature="threads")] mod threaded_writer;
 
@@ -23,6 +24,7 @@ pub use error::Error;
 pub use self::parser::{Hashes, HashesIter};
 pub use self::parser::{Header, Entry, EntryKind, Parser, EntryIterator};
 pub use self::parser::{ParseError};
+pub use v1::emitter::Emitter;
 
 use self::progress::Progress;
 use self::writer::{Writer, SyncWriter};

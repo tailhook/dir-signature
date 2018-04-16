@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 
 use {Error, HashType, HashTypeEnum};
@@ -31,5 +32,14 @@ impl FromStr for HashType {
             "blake2b/256" => Ok(HashType(HashTypeEnum::Blake2b_256)),
             _ => Err(Error::UnsupportedHash),
         }
+    }
+}
+
+impl fmt::Display for HashType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.0 {
+            HashTypeEnum::Sha512_256 => "sha512/256",
+            HashTypeEnum::Blake2b_256 => "blake2b/256",
+        }.fmt(f)
     }
 }

@@ -1,4 +1,5 @@
 use std;
+use std::fmt;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::convert::From;
@@ -7,13 +8,13 @@ use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::io::{self, BufRead};
 use std::path::{Path, PathBuf};
 use std::slice::Chunks;
-use std::str::FromStr;
+use std::str::{self, FromStr};
 
 use quick_error::ResultExt;
 
 use ::HashType;
 use super::writer::{MAGIC, VERSION};
-use super::hash::{self, HashOutput};
+use super::hash::{self, HashOutput, LOWER_CHARS};
 
 quick_error! {
     /// The error type that represents errors which can happen when parsing
@@ -356,6 +357,10 @@ pub struct Hashes {
 #[derive(Debug)]
 pub struct HashesIter<'a>(Chunks<'a, u8>);
 
+/// Hexlified hashes interator
+#[derive(Debug)]
+pub(crate) struct HexHashesIter<'a>(Chunks<'a, u8>);
+
 impl Hashes {
     fn new(data: Vec<u8>, hash_type: HashType, block_size: u64) -> Hashes {
         Hashes {
@@ -395,6 +400,11 @@ impl Hashes {
     /// Returns iterator over hashes
     pub fn iter<'a>(&'a self) -> HashesIter<'a> {
         HashesIter(self.data.chunks(self.hash_type.output_bytes()))
+    }
+
+    /// Returns iterator over hexlified hashes
+    pub(crate) fn hex_iter<'a>(&'a self) -> HexHashesIter<'a> {
+        HexHashesIter(self.data.chunks(self.hash_type.output_bytes()))
     }
 
     /// Creates and instance by hashing a file
@@ -461,6 +471,15 @@ impl<'a> Iterator for HashesIter<'a> {
     type Item = &'a [u8];
     fn next(&mut self) -> Option<&'a [u8]> {
         self.0.next()
+    }
+}
+
+pub(crate) struct Hexlified<'a>(pub(crate) &'a [u8]);
+
+impl<'a> Iterator for HexHashesIter<'a> {
+    type Item = Hexlified<'a>;
+    fn next(&mut self) -> Option<Hexlified<'a>> {
+        self.0.next().map(Hexlified)
     }
 }
 
@@ -775,6 +794,19 @@ fn parse_field<'a>(data: &'a [u8])
     Ok((field, tail))
 }
 
+#[cfg(test)]
+impl Hashes {
+    pub fn from_hex(data: &str, hash_type: HashType, hashes_num: usize,
+        block_size: u64)
+        -> Hashes
+    {
+        Hashes::new(
+            parse_hashes(data.as_bytes(), hash_type, hashes_num).unwrap().0,
+            hash_type,
+            block_size)
+    }
+}
+
 fn parse_hashes<'a>(data: &'a [u8], hash_type: HashType, hashes_num: usize)
     -> Result<(Vec<u8>, &'a [u8]), ParseRowError>
 {
@@ -879,6 +911,23 @@ fn is_hex(c: u8) -> bool {
     c >= b'0' && c <= b'9'
         || c >= b'A' && c <= b'F'
         || c >= b'a' && c <= b'f'
+}
+
+impl<'a> fmt::LowerHex for Hexlified<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let data = self.0;
+        assert_eq!(data.len(), 32);
+        let max_digits = f.precision().unwrap_or(data.len()*2);
+        let mut res = [0u8; 64];
+        for (i, c) in data.iter().take(max_digits/2+1).enumerate() {
+            res[i*2] = LOWER_CHARS[(c >> 4) as usize];
+            res[i*2+1] = LOWER_CHARS[(c & 0xF) as usize];
+        }
+        f.write_str(unsafe {
+            str::from_utf8_unchecked(&res[..max_digits])
+        })?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

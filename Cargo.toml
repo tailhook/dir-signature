@@ -41,3 +41,4 @@ threads = ["futures", "futures-cpupool", "num_cpus"]
 matches = "0.1.6"
 rustc-hex = "1.0.0"
 difference = "2.0.0"
+pretty_assertions = "0.5.1"
