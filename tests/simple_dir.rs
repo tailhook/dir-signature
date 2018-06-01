@@ -1,7 +1,7 @@
 extern crate dir_signature;
 #[macro_use] extern crate difference;
 
-use dir_signature::{ScannerConfig, v1};
+use dir_signature::{HashType, ScannerConfig, v1};
 
 
 #[test]
@@ -133,4 +133,24 @@ DIRSIGNATURE.v1 sha512/256 block_size=32768
 141a80ae97aa3ed18cc84004b0cabb37b75619bb2c9cba753d9a710270f85e70
 ", "\n", 0);
     }
+}
+
+#[test]
+fn test_blake2b_dir2() {
+    let mut cfg = ScannerConfig::new();
+    cfg.hash(HashType::blake2b_256());
+    cfg.add_dir("tests/dir2", "/");
+    let mut buf = Vec::new();
+    v1::scan(&cfg, &mut buf).unwrap();
+    assert_diff!(&String::from_utf8_lossy(&buf), "\
+        DIRSIGNATURE.v1 blake2b/256 block_size=32768
+/
+  file2.txt f 18 3ae02016c534f640b87b21d5bb94bf39a29c4cfa8e1bcdfcdea28993301255f9
+/sub2
+  hello.txt f 6 1bb580f57655aff3424d7832686c80195b61b5f228702e426c5332941211aff8
+/subdir
+  bigdata.bin f 81920 e9334020344bcb418f16c532a4fad5465ef530cff3eaaee6411bddf59e210e50 e9334020344bcb418f16c532a4fad5465ef530cff3eaaee6411bddf59e210e50 087e8b8bdc8b93f4f83212c1d6c01af4c55d3c1d3412da45112e903df797c1cd
+  file3.txt f 12 47fc3debf75989703259c26b1c7f7dec735fd7f80b5d02f5c7f07e7794433e18
+2a74fd7919473f3dde830ee4a8e3e108a6954731a319e9198ef483f9c9e82992
+", "\n", 0);
 }
