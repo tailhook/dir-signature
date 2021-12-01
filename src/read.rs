@@ -6,8 +6,8 @@ use {HashType};
 
 fn hex_to_digit(v: u8) -> Option<u8> {
     match v {
-        b'0'...b'9' => Some(v & 0x0f),
-        b'a'...b'f' | b'A'...b'F' => Some((v & 0x0f) + 9),
+        b'0'..=b'9' => Some(v & 0x0f),
+        b'a'..=b'f' | b'A'..=b'F' => Some((v & 0x0f) + 9),
         _ => None
     }
 }
