@@ -5,8 +5,6 @@ use std::path::Path;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::PermissionsExt;
 
-
-use sha2::Digest;
 use openat::{Dir, Entry};
 
 use error::Error::{self, WriteError as EWrite, ReadFile as EFile};
@@ -31,20 +29,18 @@ pub trait Writer {
     fn done(self) -> Result<(), Error>;
 }
 
-pub(crate) struct HashWriter<F, H> {
+pub(crate) struct HashWriter<F, H: Hash> {
     pub(crate) file: F,
     pub(crate) digest: H,
 }
 
 pub(crate) struct SyncWriter<F, H: Hash> {
-    file: HashWriter<F, H::Digest>,
+    file: HashWriter<F, H>,
     block_size: u64,
     hash: H,
 }
 
-impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H>
-    where H::Digest: Clone,
-{
+impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H> {
     type TotalHash = H::Output;
     fn start_dir(&mut self, path: &Path) -> Result<(), Error> {
         writeln!(&mut self.file, "{}", Name(path)).map_err(EWrite)?;
@@ -81,7 +77,7 @@ impl<F: io::Write, H: Hash> Writer for SyncWriter<F, H>
         Ok(())
     }
     fn get_hash(&mut self) -> Result<H::Output, Error> {
-        Ok(self.hash.total_hash(self.file.digest.clone()))
+        Ok(self.file.digest.total_hash())
     }
     fn done(mut self) -> Result<(), Error>
     {
@@ -102,17 +98,17 @@ impl<F: io::Write, H: Hash> SyncWriter<F, H> {
             block_size,
         ).map_err(EWrite)?;
         Ok(SyncWriter {
-            file: HashWriter { file: f, digest: hash.total_hasher() },
+            file: HashWriter { file: f, digest: hash.clone() },
             block_size: block_size,
             hash: hash,
         })
     }
 }
 
-impl<F: io::Write, H: Digest> io::Write for HashWriter<F, H> {
+impl<F: io::Write, H: Hash> io::Write for HashWriter<F, H> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let n = self.file.write(buf)?;
-        self.digest.input(&buf[..n]);
+        self.digest.update(&buf[..n]);
         Ok(n)
     }
     fn flush(&mut self) -> io::Result<()> {

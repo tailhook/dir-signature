@@ -2,8 +2,10 @@ use std::io::{self, Write};
 use std::ffi::OsStr;
 use std::path::Path;
 
-use sha2::{self, Digest};
-use blake2::{Blake2b, digest::VariableOutput};
+use generic_array::GenericArray;
+use digest::{FixedOutputDirty, Update, VariableOutput};
+use sha2;
+use blake2::VarBlake2b;
 
 use {HashType, HashTypeEnum};
 use v1::writer::{MAGIC, VERSION, Name};
@@ -38,11 +40,11 @@ impl<'a> Emitter<'a> {
     {
         let hash = match hash_type.0 {
             HashTypeEnum::Sha512_256 => {
-                Box::new(sha2::Sha512Trunc256::new())
+                Box::new(sha2::Sha512Trunc256::default())
                 as Box<HashTrait>
             }
             HashTypeEnum::Blake2b_256 => {
-                Box::new(<Blake2b as VariableOutput>::new(32)
+                Box::new(<VarBlake2b as VariableOutput>::new(32)
                          .expect("Valid length"))
                 as Box<HashTrait>
             }
@@ -125,21 +127,23 @@ impl<'a> Emitter<'a> {
 }
 
 impl HashTrait for sha2::Sha512Trunc256 {
-    fn input(&mut self, data:&[u8]) {
-        Digest::input(self, data);
+    fn input(&mut self, data: &[u8]) {
+        self.update(data);
     }
     fn write_hash(&mut self, out: &mut Write) -> io::Result<()> {
-        writeln!(out, "{:x}", Hexlified(self.clone().result().as_ref()))
+        let mut digest = GenericArray::<u8, <Self as FixedOutputDirty>::OutputSize>::default();
+        self.finalize_into_dirty(&mut digest);
+        writeln!(out, "{:x}", Hexlified(digest.as_ref()))
     }
 }
 
-impl HashTrait for Blake2b {
-    fn input(&mut self, data:&[u8]) {
-        Digest::input(self, data);
+impl HashTrait for VarBlake2b {
+    fn input(&mut self, data: &[u8]) {
+        self.update(data);
     }
     fn write_hash(&mut self, out: &mut Write) -> io::Result<()> {
         let mut val = [0u8; 32];
-        self.clone().variable_result(&mut val).expect("valid length");
+        self.finalize_variable_reset(|d| val.copy_from_slice(d));
         writeln!(out, "{:x}", Hexlified(&val))
     }
 }
