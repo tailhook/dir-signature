@@ -1,7 +1,5 @@
 use std::io;
 
-/// This is just a common error returned from the library
-///
 // TODO(tailhook) should we split it?
 quick_error! {
     /// Error returned from scanning and making an index

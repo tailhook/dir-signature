@@ -884,8 +884,8 @@ fn parse_hex(v: &[u8]) -> Result<u8, ParseRowError> {
 
 fn hex_to_digit(v: u8) -> Result<u8, ParseRowError> {
     Ok(match v {
-        b'0'...b'9' => v & 0x0f,
-        b'a'...b'f' | b'A'...b'F' => (v & 0x0f) + 9,
+        b'0'..=b'9' => v & 0x0f,
+        b'a'..=b'f' | b'A'..=b'F' => (v & 0x0f) + 9,
         _ => return Err(
             ParseRowError::InvalidHex(format!("Character ord: {:?}", v))),
     })
@@ -897,7 +897,7 @@ fn parse_hex_unchecked(v: &[u8]) -> u8 {
 
 fn hex_to_digit_unchecked(v: u8) -> u8 {
     match v {
-        b'0'...b'9' => v & 0x0f,
+        b'0'..=b'9' => v & 0x0f,
         _ => (v & 0x0f) + 9,
     }
 }

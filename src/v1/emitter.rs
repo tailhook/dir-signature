@@ -21,32 +21,32 @@ pub struct Emitter<'a> {
 }
 
 pub(crate) struct HashWriter<'a> {
-    out: &'a mut Write,
-    hash: Box<HashTrait>,
+    out: &'a mut dyn Write,
+    hash: Box<dyn HashTrait>,
 }
 
 /// Object-safe version of hash trait
 trait HashTrait {
     fn input(&mut self, data: &[u8]);
-    fn write_hash(&mut self, out: &mut Write) -> io::Result<()>;
+    fn write_hash(&mut self, out: &mut dyn Write) -> io::Result<()>;
 }
 
 impl<'a> Emitter<'a> {
     /// Create a new emitter and write a header
     ///
     /// The Write implementation here should preferably be a buffered writer.
-    pub fn new<'x>(hash_type: HashType, block_size: u64, dest: &'x mut Write)
+    pub fn new<'x>(hash_type: HashType, block_size: u64, dest: &'x mut dyn Write)
         -> io::Result<Emitter<'x>>
     {
         let hash = match hash_type.0 {
             HashTypeEnum::Sha512_256 => {
                 Box::new(sha2::Sha512Trunc256::default())
-                as Box<HashTrait>
+                as Box<dyn HashTrait>
             }
             HashTypeEnum::Blake2b_256 => {
                 Box::new(<VarBlake2b as VariableOutput>::new(32)
                          .expect("Valid length"))
-                as Box<HashTrait>
+                as Box<dyn HashTrait>
             }
         };
         writeln!(dest,
@@ -130,7 +130,7 @@ impl HashTrait for sha2::Sha512Trunc256 {
     fn input(&mut self, data: &[u8]) {
         self.update(data);
     }
-    fn write_hash(&mut self, out: &mut Write) -> io::Result<()> {
+    fn write_hash(&mut self, out: &mut dyn Write) -> io::Result<()> {
         let mut digest = GenericArray::<u8, <Self as FixedOutputDirty>::OutputSize>::default();
         self.finalize_into_dirty(&mut digest);
         writeln!(out, "{:x}", Hexlified(digest.as_ref()))
@@ -141,7 +141,7 @@ impl HashTrait for VarBlake2b {
     fn input(&mut self, data: &[u8]) {
         self.update(data);
     }
-    fn write_hash(&mut self, out: &mut Write) -> io::Result<()> {
+    fn write_hash(&mut self, out: &mut dyn Write) -> io::Result<()> {
         let mut val = [0u8; 32];
         self.finalize_variable_reset(|d| val.copy_from_slice(d));
         writeln!(out, "{:x}", Hexlified(&val))
