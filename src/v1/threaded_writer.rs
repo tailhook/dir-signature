@@ -30,7 +30,7 @@ enum Operation {
 
 pub struct ThreadedWriter<F, H: Hash> {
     pool: CpuPool,
-    file: HashWriter<F, H::Digest>,
+    file: HashWriter<F, H>,
     block_size: u64,
     hash: H,
     queue_limit: usize,
@@ -49,7 +49,7 @@ impl<F: io::Write, H: Hash> ThreadedWriter<F, H> {
             block_size,
         ).map_err(EWrite)?;
         Ok(ThreadedWriter {
-            file: HashWriter { file: f, digest: hash.total_hasher() },
+            file: HashWriter { file: f, digest: hash.clone() },
             block_size: block_size,
             hash: hash,
             queue_limit: threads*16,
@@ -115,9 +115,7 @@ impl<F: io::Write, H: Hash> ThreadedWriter<F, H> {
     }
 }
 
-impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H>
-    where H::Digest: Clone,
-{
+impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H> {
     type TotalHash = H::Output;
     fn start_dir(&mut self, path: &Path) -> Result<(), Error> {
         // TODO(tailhook) optimize allocation if no queue is present
@@ -130,7 +128,7 @@ impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H>
         use std::fmt::Write;
         let dir = dir.clone();
         let block_size = self.block_size;
-        let hash = self.hash;
+        let mut hash = self.hash.clone();
         self.queue.push_back(Operation::File(self.pool.spawn_fn(move || {
             let mut f = dir.open_file(&entry).map_err(EFile)?;
             let meta = f.metadata().map_err(EFile)?;
@@ -159,7 +157,7 @@ impl<F: io::Write, H: Hash> Writer for ThreadedWriter<F, H>
     }
     fn get_hash(&mut self) -> Result<Self::TotalHash, Error> {
         self.wait_queue()?;
-        Ok(self.hash.total_hash(self.file.digest.clone()))
+        Ok(self.file.digest.total_hash())
     }
     fn done(mut self) -> Result<(), Error>
     {

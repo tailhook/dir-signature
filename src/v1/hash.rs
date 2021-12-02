@@ -2,39 +2,34 @@ use std::io;
 use std::fmt;
 use std::str;
 
-use sha2::{self, Digest, Sha512Trunc256};
-use blake2::Blake2b;
-use blake2::digest::{VariableOutput, FixedOutput};
+use digest::{FixedOutputDirty, Reset, Update, VariableOutput};
+use sha2::Sha512Trunc256;
+use blake2::VarBlake2b;
 use generic_array::GenericArray;
-use digest_writer::Writer as DWriter;
-
 
 pub(crate) static LOWER_CHARS: &'static[u8] = b"0123456789abcdef";
 
-
-pub trait Hash: Copy + Send + Sync + 'static {
+pub trait Hash: Clone + Send + Sync + io::Write + 'static {
     type Output: HashOutput + fmt::LowerHex;
-    type Digest: Digest;
-    fn name(&self) -> &str;
-    fn total_hasher(&self) -> Self::Digest;
-    fn total_hash(&self, d: Self::Digest) -> Self::Output;
 
-    fn hash_file<F: io::Read>(&self, f: F, block_size: u64)
+    fn name(&self) -> &str;
+
+    fn update(&mut self, data: &[u8]);
+
+    fn total_hash(&mut self) -> Self::Output;
+
+    fn hash_file<F: io::Read>(&mut self, f: F, block_size: u64)
         -> io::Result<Self::Output>
     {
-        let mut digest = DWriter::new(self.total_hasher());
-        io::copy(&mut f.take(block_size), &mut digest)?;
-        let d = digest.into_inner();
-        Ok(self.total_hash(d))
+        io::copy(&mut f.take(block_size), self)?;
+        Ok(self.total_hash())
     }
 
-    fn hash_and_size<F: io::Read>(&self, f: F, block_size: u64)
+    fn hash_and_size<F: io::Read>(&mut self, f: F, block_size: u64)
         -> io::Result<(u64, Self::Output)>
     {
-        let mut digest = DWriter::new(self.total_hasher());
-        let bytes = io::copy(&mut f.take(block_size), &mut digest)?;
-        let d = digest.into_inner();
-        Ok((bytes, self.total_hash(d)))
+        let bytes = io::copy(&mut f.take(block_size), self)?;
+        Ok((bytes, self.total_hash()))
     }
 }
 
@@ -43,46 +38,85 @@ pub trait HashOutput {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug)]
-pub struct Sha512_256;
+#[derive(Clone, Debug)]
+pub struct Sha512_256(Sha512Trunc256);
+
+impl Sha512_256 {
+    pub fn new() -> Self {
+        Self(Sha512Trunc256::default())
+    }
+}
+
+impl io::Write for Sha512_256 {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
+        self.0.write(buf)
+    }
+
+    fn flush(&mut self) -> Result<(), io::Error> {
+        self.0.flush()
+    }
+}
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug)]
-pub struct Blake2b_256;
+#[derive(Clone, Debug)]
+pub struct Blake2b_256(VarBlake2b);
+
+impl Blake2b_256 {
+    pub fn new() -> Self {
+        Self(VarBlake2b::new(32).expect("Valid length"))
+    }
+}
+
+impl io::Write for Blake2b_256 {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
+        self.0.write(buf)
+    }
+
+    fn flush(&mut self) -> Result<(), io::Error> {
+        self.0.flush()
+    }
+}
 
 #[allow(non_camel_case_types)]
-pub struct Sha512_256_Res(GenericArray<u8, <Sha512Trunc256 as FixedOutput>::OutputSize>);
+pub struct Sha512_256_Res(GenericArray<u8, <Sha512Trunc256 as FixedOutputDirty>::OutputSize>);
 
 #[allow(non_camel_case_types)]
 pub struct Blake2b_256_Res([u8; 32]);
 
 impl Hash for Sha512_256 {
     type Output = Sha512_256_Res;
-    type Digest = sha2::Sha512Trunc256;
+
     fn name(&self) -> &str {
         "sha512/256"
     }
-    fn total_hasher(&self) -> Self::Digest {
-        sha2::Sha512Trunc256::new()
+
+    fn update(&mut self, data: &[u8]) {
+        self.0.update(data)
     }
-    fn total_hash(&self, d: Self::Digest) -> Self::Output {
-        Sha512_256_Res(d.fixed_result())
+
+    fn total_hash(&mut self) -> Self::Output {
+        let mut digest = GenericArray::<u8, <Sha512Trunc256 as FixedOutputDirty>::OutputSize>::default();
+        self.0.finalize_into_dirty(&mut digest);
+        self.0.reset();
+        Sha512_256_Res(digest)
     }
 }
 
 impl Hash for Blake2b_256 {
     type Output = Blake2b_256_Res;
-    type Digest = Blake2b;
+
     fn name(&self) -> &str {
         "blake2b/256"
     }
-    fn total_hasher(&self) -> Self::Digest {
-        VariableOutput::new(32).expect("Valid length")
+
+    fn update(&mut self, data: &[u8]) {
+        self.0.update(data)
     }
-    fn total_hash(&self, d: Self::Digest) -> Self::Output {
-        let mut val = [0u8; 32];
-        d.variable_result(&mut val).expect("valid length");
-        Blake2b_256_Res(val)
+
+    fn total_hash(&mut self) -> Self::Output {
+        let mut h: [u8; 32] = Default::default();
+        self.0.finalize_variable_reset(|d| h.copy_from_slice(d));
+        Blake2b_256_Res(h)
     }
 }
 

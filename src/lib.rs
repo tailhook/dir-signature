@@ -26,9 +26,9 @@
 #![recursion_limit="100"]
 
 extern crate openat;
+extern crate digest;
 extern crate sha2;
 extern crate blake2;
-extern crate digest_writer;
 extern crate generic_array;
 extern crate itertools;
 #[macro_use] extern crate log;

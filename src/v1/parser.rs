@@ -416,15 +416,15 @@ impl Hashes {
         use HashTypeEnum::*;
         match hash.0 {
             Sha512_256 => {
-                Hashes::_hash_file(f, hash::Sha512_256, block_size, hash)
+                Hashes::_hash_file(f, hash::Sha512_256::new(), block_size, hash)
             }
             Blake2b_256 => {
-                Hashes::_hash_file(f, hash::Blake2b_256, block_size, hash)
+                Hashes::_hash_file(f, hash::Blake2b_256::new(), block_size, hash)
             }
         }
     }
 
-    fn _hash_file<R: io::Read, H: hash::Hash>(mut f: R, h: H,
+    fn _hash_file<R: io::Read, H: hash::Hash>(mut f: R, mut h: H,
         block_size: u64, typ: HashType)
         -> io::Result<(u64, Hashes)>
     {
@@ -445,12 +445,12 @@ impl Hashes {
     pub fn check_file<R: io::Read>(&self, f: R) -> io::Result<bool> {
         use HashTypeEnum::*;
         match self.hash_type.0 {
-            Sha512_256 => self._check_file(f, hash::Sha512_256),
-            Blake2b_256 => self._check_file(f, hash::Blake2b_256),
+            Sha512_256 => self._check_file(f, hash::Sha512_256::new()),
+            Blake2b_256 => self._check_file(f, hash::Blake2b_256::new()),
         }
     }
 
-    fn _check_file<R: io::Read, H: hash::Hash>(&self, mut f: R, h: H)
+    fn _check_file<R: io::Read, H: hash::Hash>(&self, mut f: R, mut h: H)
         -> io::Result<bool>
     {
         for orig_hash in self.iter() {
