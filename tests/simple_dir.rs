@@ -154,3 +154,23 @@ fn test_blake2b_dir2() {
 2a74fd7919473f3dde830ee4a8e3e108a6954731a319e9198ef483f9c9e82992
 ", "\n", 0);
 }
+
+#[test]
+fn test_blake3_dir2() {
+    let mut cfg = ScannerConfig::new();
+    cfg.hash(HashType::blake3_256());
+    cfg.add_dir("tests/dir2", "/");
+    let mut buf = Vec::new();
+    v1::scan(&cfg, &mut buf).unwrap();
+    assert_diff!(&String::from_utf8_lossy(&buf), "\
+        DIRSIGNATURE.v1 blake3/256 block_size=32768
+/
+  file2.txt f 18 99b6111fa45d4c059be2ca5b1b385386aeb1e97ea5c904a52129fb83540fc83b
+/sub2
+  hello.txt f 6 1f24336b1d7e12241911ed57c018aab77735f2193cc96048c2ce228ae6356204
+/subdir
+  bigdata.bin f 81920 3c14a8b1cc0bf7a59bb848df9ca8618b54ea4fe3a8bc2b02015d3f63bfb305f3 e3a7977eb650db263073579117ca57171987044d539f4f3a12b36d4ff216519f ec8343a48a538a03a7dfa06f1d849cb0952d9739c9ac72bbd21318e3354c5725
+  file3.txt f 12 0c244b7e2c3241d0b2c06ce095dbb9c75e603e00a7ea36fb4b6a77ce137c90ac
+d4a144758b5e126e4c2ee60f743a409294bfc18bf226a68d524d3ecb43a8991e
+", "\n", 0);
+}

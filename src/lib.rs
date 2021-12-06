@@ -62,4 +62,5 @@ pub struct HashType(HashTypeEnum);
 enum HashTypeEnum {
     Sha512_256,
     Blake2b_256,
+    Blake3_256,
 }

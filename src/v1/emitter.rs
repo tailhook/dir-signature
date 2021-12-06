@@ -48,6 +48,10 @@ impl<'a> Emitter<'a> {
                          .expect("Valid length"))
                 as Box<dyn HashTrait>
             }
+            HashTypeEnum::Blake3_256 => {
+                Box::new(blake3::Hasher::new())
+                as Box<dyn HashTrait>
+            }
         };
         writeln!(dest,
             "{}.{} {} block_size={}",
@@ -145,6 +149,15 @@ impl HashTrait for VarBlake2b {
         let mut val = [0u8; 32];
         self.finalize_variable_reset(|d| val.copy_from_slice(d));
         writeln!(out, "{:x}", Hexlified(&val))
+    }
+}
+
+impl HashTrait for blake3::Hasher {
+    fn input(&mut self, data: &[u8]) {
+        self.update(data);
+    }
+    fn write_hash(&mut self, out: &mut dyn Write) -> io::Result<()> {
+        out.write(self.finalize().to_hex().as_str().as_bytes()).map(|_| ())
     }
 }
 

@@ -84,5 +84,8 @@ fn add_hash<O>(config: &ScannerConfig, out: &mut O)
         HashTypeEnum::Blake2b_256 => {
             add_threads(config, hash::Blake2b_256::new(), out)
         }
+        HashTypeEnum::Blake3_256 => {
+            add_threads(config, hash::Blake3_256::new(), out)
+        }
     }
 }

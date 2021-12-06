@@ -42,6 +42,7 @@ case sensitive and order is fixed. Parts have the following meaning:
    ``sha512/256`` which means ``sha512`` truncated to a 256 bits.
    Other hash kinds might be added in future. It's expected that sha512/256
    will be supported by every implementation and others are optional.
+   Update 2021.12.06: ``blake3/256`` is also supported
 
 3. Space separated key value pairs. This specification defines only
    ``block_size``. It must be the first key in the header. This specification

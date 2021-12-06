@@ -7,7 +7,7 @@ impl ScannerConfig {
     /// Create an empty scanner config with defaults
     ///
     /// By default we use ``sha512/256`` hasher as it increases
-    /// interoperability, but consider using ``blake2b/256`` as it 25% faster
+    /// interoperability, but consider using ``blake3/256`` as it much faster
     pub fn new() -> ScannerConfig {
         ScannerConfig {
             threads: 0,

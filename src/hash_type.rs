@@ -16,10 +16,18 @@ impl HashType {
         HashType(HashTypeEnum::Blake2b_256)
     }
 
+    /// Constructs 256bits (32 bytes) Blake3 checksum
+    pub fn blake3_256() -> HashType {
+        HashType(HashTypeEnum::Blake3_256)
+    }
+
     /// Get the digest size in bytes
     pub fn output_bytes(self) -> usize {
         match self.0 {
-            HashTypeEnum::Sha512_256 | HashTypeEnum::Blake2b_256 => 32,
+            | HashTypeEnum::Sha512_256
+            | HashTypeEnum::Blake2b_256
+            | HashTypeEnum::Blake3_256
+                => 32,
         }
     }
 }
@@ -30,6 +38,7 @@ impl FromStr for HashType {
         match val {
             "sha512/256" => Ok(HashType(HashTypeEnum::Sha512_256)),
             "blake2b/256" => Ok(HashType(HashTypeEnum::Blake2b_256)),
+            "blake3/256" => Ok(HashType(HashTypeEnum::Blake3_256)),
             _ => Err(Error::UnsupportedHash),
         }
     }
@@ -40,6 +49,7 @@ impl fmt::Display for HashType {
         match self.0 {
             HashTypeEnum::Sha512_256 => "sha512/256",
             HashTypeEnum::Blake2b_256 => "blake2b/256",
+            HashTypeEnum::Blake3_256 => "blake3/256",
         }.fmt(f)
     }
 }

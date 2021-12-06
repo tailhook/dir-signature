@@ -78,10 +78,30 @@ impl io::Write for Blake2b_256 {
 }
 
 #[allow(non_camel_case_types)]
+#[derive(Clone, Debug)]
+pub struct Blake3_256(blake3::Hasher);
+
+impl Blake3_256 {
+    pub fn new() -> Self {
+        Self(blake3::Hasher::new())
+    }
+}
+
+impl io::Write for Blake3_256 {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
+        self.0.write(buf)
+    }
+
+    fn flush(&mut self) -> Result<(), io::Error> {
+        self.0.flush()
+    }
+}
+
+#[allow(non_camel_case_types)]
 pub struct Sha512_256_Res(GenericArray<u8, <Sha512Trunc256 as FixedOutputDirty>::OutputSize>);
 
 #[allow(non_camel_case_types)]
-pub struct Blake2b_256_Res([u8; 32]);
+pub struct Blake_Res([u8; 32]);
 
 impl Hash for Sha512_256 {
     type Output = Sha512_256_Res;
@@ -103,7 +123,7 @@ impl Hash for Sha512_256 {
 }
 
 impl Hash for Blake2b_256 {
-    type Output = Blake2b_256_Res;
+    type Output = Blake_Res;
 
     fn name(&self) -> &str {
         "blake2b/256"
@@ -116,7 +136,25 @@ impl Hash for Blake2b_256 {
     fn total_hash(&mut self) -> Self::Output {
         let mut h: [u8; 32] = Default::default();
         self.0.finalize_variable_reset(|d| h.copy_from_slice(d));
-        Blake2b_256_Res(h)
+        Blake_Res(h)
+    }
+}
+
+impl Hash for Blake3_256 {
+    type Output = Blake_Res;
+
+    fn name(&self) -> &str {
+        "blake3/256"
+    }
+
+    fn update(&mut self, data: &[u8]) {
+        self.0.update(data);
+    }
+
+    fn total_hash(&mut self) -> Self::Output {
+        let mut h: [u8; 32] = Default::default();
+        h.copy_from_slice(self.0.finalize().as_bytes());
+        Blake_Res(h)
     }
 }
 
@@ -126,7 +164,7 @@ impl HashOutput for Sha512_256_Res {
     }
 }
 
-impl HashOutput for Blake2b_256_Res {
+impl HashOutput for Blake_Res {
     fn result(&self) -> &[u8] {
         &self.0[..]
     }
@@ -149,7 +187,7 @@ impl fmt::LowerHex for Sha512_256_Res {
     }
 }
 
-impl fmt::LowerHex for Blake2b_256_Res {
+impl fmt::LowerHex for Blake_Res {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let data = &self.0[..32];
         assert!(data.len() == 32);

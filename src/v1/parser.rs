@@ -421,6 +421,9 @@ impl Hashes {
             Blake2b_256 => {
                 Hashes::_hash_file(f, hash::Blake2b_256::new(), block_size, hash)
             }
+            Blake3_256 => {
+                Hashes::_hash_file(f, hash::Blake3_256::new(), block_size, hash)
+            }
         }
     }
 
@@ -447,6 +450,7 @@ impl Hashes {
         match self.hash_type.0 {
             Sha512_256 => self._check_file(f, hash::Sha512_256::new()),
             Blake2b_256 => self._check_file(f, hash::Blake2b_256::new()),
+            Blake3_256 => self._check_file(f, hash::Blake3_256::new()),
         }
     }
 
