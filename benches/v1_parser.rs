@@ -8,7 +8,6 @@ use std::process;
 extern crate test;
 use test::Bencher;
 
-extern crate dir_signature;
 use dir_signature::v1::{Entry, Parser};
 use dir_signature::v1::merge::FileMergeBuilder;
 

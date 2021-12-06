@@ -1,4 +1,4 @@
-extern crate dir_signature;
+
 #[macro_use] extern crate difference;
 
 use dir_signature::{HashType, ScannerConfig, v1};

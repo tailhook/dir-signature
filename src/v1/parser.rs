@@ -12,7 +12,7 @@ use std::str::{self, FromStr};
 
 use quick_error::ResultExt;
 
-use ::HashType;
+use crate::HashType;
 use super::writer::{MAGIC, VERSION};
 use super::hash::{self, HashOutput, LOWER_CHARS};
 
@@ -413,7 +413,7 @@ impl Hashes {
     pub fn hash_file<R: io::Read>(hash: HashType, block_size: u64, f: R)
         -> io::Result<(u64, Hashes)>
     {
-        use HashTypeEnum::*;
+        use crate::HashTypeEnum::*;
         match hash.0 {
             Sha512_256 => {
                 Hashes::_hash_file(f, hash::Sha512_256::new(), block_size, hash)
@@ -443,7 +443,7 @@ impl Hashes {
 
     /// Checks whether file has the same hash
     pub fn check_file<R: io::Read>(&self, f: R) -> io::Result<bool> {
-        use HashTypeEnum::*;
+        use crate::HashTypeEnum::*;
         match self.hash_type.0 {
             Sha512_256 => self._check_file(f, hash::Sha512_256::new()),
             Blake2b_256 => self._check_file(f, hash::Blake2b_256::new()),
@@ -592,7 +592,7 @@ impl<R: BufRead> Parser<R> {
     }
 
     /// Creates iterator over directory signature entries
-    pub fn iter(&mut self) -> EntryIterator<R> {
+    pub fn iter(&mut self) -> EntryIterator<'_, R> {
         EntryIterator::new(&mut self.reader,
             self.header.hash_type, self.header.block_size)
     }
@@ -621,7 +621,7 @@ impl<R: BufRead> Parser<R> {
 }
 
 /// Iterator over the entries of the signature file
-pub struct EntryIterator<'a, R: 'a + BufRead> {
+pub struct EntryIterator<'a, R: BufRead> {
     reader: &'a mut R,
     hash_type: HashType,
     block_size: u64,
@@ -633,7 +633,7 @@ pub struct EntryIterator<'a, R: 'a + BufRead> {
 
 impl<'a, R: BufRead> EntryIterator<'a, R> {
     fn new(reader: &'a mut R, hash_type: HashType, block_size: u64)
-        -> EntryIterator<R>
+        -> EntryIterator<'_, R>
     {
         EntryIterator {
             reader: reader.by_ref(),
@@ -746,7 +746,7 @@ fn read_line<R: BufRead>(reader: &mut R, mut buf: &mut Vec<u8>)
 }
 
 fn parse_path<'a>(data: &'a [u8])
-    -> Result<(Cow<Path>, &'a [u8]), ParseRowError>
+    -> Result<(Cow<'_, Path>, &'a [u8]), ParseRowError>
 {
     let (path, tail) = parse_os_str(data)?;
     let unescaped_path = match unescape_hex(path) {
@@ -846,7 +846,7 @@ fn parse_hashes<'a>(data: &'a [u8], hash_type: HashType, hashes_num: usize)
     Ok((buf, data))
 }
 
-fn unescape_hex(s: &OsStr) -> Cow<OsStr> {
+fn unescape_hex(s: &OsStr) -> Cow<'_, OsStr> {
     let (mut i, has_escapes) = {
         let bytes = s.as_bytes();
         let mut i = 0;
@@ -914,7 +914,7 @@ fn is_hex(c: u8) -> bool {
 }
 
 impl<'a> fmt::LowerHex for Hexlified<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let data = self.0;
         assert_eq!(data.len(), 32);
         let max_digits = f.precision().unwrap_or(data.len()*2);
@@ -939,7 +939,7 @@ mod test {
 
     use rustc_hex::FromHex;
 
-    use ::HashType;
+    use crate::HashType;
     use super::{Entry, Footer, Hashes, Header, ParseRowError};
     use super::{parse_hashes, parse_hex, is_hex, is_hex_encoding, unescape_hex};
 

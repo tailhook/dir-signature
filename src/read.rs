@@ -1,7 +1,7 @@
 use std::str::{from_utf8, FromStr};
 use std::io::{self, Read, Seek, SeekFrom};
 
-use {HashType};
+use crate::{HashType};
 
 
 fn hex_to_digit(v: u8) -> Option<u8> {

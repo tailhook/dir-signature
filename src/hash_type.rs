@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use {Error, HashType, HashTypeEnum};
+use crate::{Error, HashType, HashTypeEnum};
 
 
 impl HashType {
@@ -36,7 +36,7 @@ impl FromStr for HashType {
 }
 
 impl fmt::Display for HashType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             HashTypeEnum::Sha512_256 => "sha512/256",
             HashTypeEnum::Blake2b_256 => "blake2b/256",

@@ -1,12 +1,12 @@
 use std::io::{BufReader, Cursor, Seek, SeekFrom};
 use std::path::Path;
 
-extern crate rustc_hex;
+
 use rustc_hex::FromHex;
 
 #[macro_use] extern crate matches;
 
-extern crate dir_signature;
+
 use dir_signature::HashType;
 use dir_signature::v1::{Entry, EntryKind, Parser};
 

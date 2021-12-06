@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use {ScannerConfig, HashType, HashTypeEnum};
+use crate::{ScannerConfig, HashType, HashTypeEnum};
 
 
 impl ScannerConfig {

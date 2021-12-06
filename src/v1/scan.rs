@@ -5,8 +5,8 @@ use std::collections::VecDeque;
 use openat::Dir;
 use itertools::Itertools;
 
-use {ScannerConfig, Error};
-use Error::{OpenDir as EDir, ListDir as EList, ReadFile as ERead};
+use crate::{ScannerConfig, Error};
+use crate::Error::{OpenDir as EDir, ListDir as EList, ReadFile as ERead};
 use super::writer::Writer;
 
 

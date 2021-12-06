@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 #[macro_use] extern crate matches;
 
-extern crate dir_signature;
+
 use dir_signature::HashType;
 use dir_signature::v1::{Entry, EntryKind, Parser};
 use dir_signature::v1::merge::{MergeError, MergedSignatures};

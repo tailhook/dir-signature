@@ -5,7 +5,7 @@ use std::time::{Instant, Duration};
 
 use super::writer::Writer;
 use openat::{Dir, Entry};
-use {Error};
+use crate::{Error};
 
 
 pub struct Progress<W, S> {

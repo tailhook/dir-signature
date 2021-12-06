@@ -12,7 +12,7 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
-use ::HashType;
+use crate::HashType;
 use super::{Entry, EntryKind, Parser, ParseError};
 use super::parser::EntryIterator;
 
@@ -124,7 +124,7 @@ impl<K, R: BufRead> MergedSignatures<K, R> {
 }
 
 /// Iterator over the entries from several signature files
-pub struct MergedEntriesIterator<'a, K: 'a, R: 'a + BufRead> {
+pub struct MergedEntriesIterator<'a, K, R: BufRead> {
     iterators: Vec<(&'a K, PeekableEntryIterator<'a, R>)>,
     iterator_ixs: Vec<usize>,
 }
@@ -158,7 +158,7 @@ impl<'a, K, R: BufRead> MergedEntriesIterator<'a, K, R> {
     }
 }
 
-struct PeekableEntryIterator<'a, R: 'a + BufRead> {
+struct PeekableEntryIterator<'a, R: BufRead> {
     head: Option<Result<Entry, ParseError>>,
     tail: EntryIterator<'a, R>,
 }

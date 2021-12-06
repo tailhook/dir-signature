@@ -133,7 +133,7 @@ impl HashOutput for Blake2b_256_Res {
 }
 
 impl fmt::LowerHex for Sha512_256_Res {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let data = &self.0[..32];  // Truncated hash!
         assert!(data.len() == 32);
         let max_digits = f.precision().unwrap_or(data.len()*2);
@@ -150,7 +150,7 @@ impl fmt::LowerHex for Sha512_256_Res {
 }
 
 impl fmt::LowerHex for Blake2b_256_Res {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let data = &self.0[..32];
         assert!(data.len() == 32);
         let max_digits = f.precision().unwrap_or(data.len()*2);

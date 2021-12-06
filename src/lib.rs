@@ -25,25 +25,11 @@
 #![warn(missing_docs)]
 #![recursion_limit="100"]
 
-extern crate openat;
-extern crate digest;
-extern crate sha2;
-extern crate blake2;
-extern crate generic_array;
-extern crate itertools;
 #[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
 
-#[cfg(feature="threads")] extern crate num_cpus;
-#[cfg(feature="threads")] extern crate futures;
-#[cfg(feature="threads")] extern crate futures_cpupool;
 #[cfg(test)] #[macro_use] extern crate pretty_assertions;
-
-#[cfg(test)]
-#[macro_use] extern crate matches;
-#[cfg(test)]
-extern crate rustc_hex;
-
+#[cfg(test)] #[macro_use] extern crate matches;
 
 pub mod v1;
 mod error;
@@ -51,8 +37,8 @@ mod config;
 mod hash_type;
 mod read;
 
-pub use error::Error;
-pub use read::get_hash;
+pub use crate::error::Error;
+pub use crate::read::get_hash;
 
 use std::path::PathBuf;
 

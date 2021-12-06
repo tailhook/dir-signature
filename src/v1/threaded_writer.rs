@@ -8,9 +8,9 @@ use futures::{Async, Future, executor};
 use openat::{Dir, Entry};
 use futures_cpupool::{CpuPool, CpuFuture};
 
-use error::Error::{self, WriteError as EWrite, ReadFile as EFile};
-use v1::writer::{Writer, HashWriter, Name, EXE_MASK, MAGIC, VERSION};
-use v1::hash::Hash;
+use crate::error::Error::{self, WriteError as EWrite, ReadFile as EFile};
+use crate::v1::writer::{Writer, HashWriter, Name, EXE_MASK, MAGIC, VERSION};
+use crate::v1::hash::Hash;
 
 #[derive(Clone)]
 struct Notify;

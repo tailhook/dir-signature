@@ -1,8 +1,8 @@
 #[macro_use] extern crate log;
-extern crate argparse;
-extern crate env_logger;
-extern crate dir_signature;
-#[cfg(feature="threads")] extern crate num_cpus;
+
+use env_logger;
+
+
 
 use std::io::{self, Write};
 use std::env;

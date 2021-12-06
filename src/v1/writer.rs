@@ -7,7 +7,7 @@ use std::os::unix::fs::PermissionsExt;
 
 use openat::{Dir, Entry};
 
-use error::Error::{self, WriteError as EWrite, ReadFile as EFile};
+use crate::error::Error::{self, WriteError as EWrite, ReadFile as EFile};
 use super::hash::Hash;
 
 
@@ -117,7 +117,7 @@ impl<F: io::Write, H: Hash> io::Write for HashWriter<F, H> {
 }
 
 impl<'a> fmt::Display for Name<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use std::fmt::Write;
 
         for &b in self.0.as_os_str().as_bytes() {

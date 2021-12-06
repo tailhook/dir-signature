@@ -11,6 +11,7 @@ homepage = "http://github.com/tailhook/dir-signature"
 documentation = "http://docs.rs/dir-signature"
 version = "0.2.9"
 authors = ["paul@colomiets.name"]
+edition = "2018"
 
 [dependencies]
 quick-error = "1.2.1"

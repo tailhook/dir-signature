@@ -20,16 +20,16 @@ pub mod merge;
 
 use std::io;
 
-pub use error::Error;
+pub use crate::error::Error;
 pub use self::parser::{Hashes, HashesIter};
 pub use self::parser::{Header, Entry, EntryKind, Parser, EntryIterator};
 pub use self::parser::{ParseError};
-pub use v1::emitter::Emitter;
+pub use crate::v1::emitter::Emitter;
 
 use self::progress::Progress;
 use self::writer::{Writer, SyncWriter};
-use v1::hash::Hash;
-use {ScannerConfig, HashTypeEnum};
+use crate::v1::hash::Hash;
+use crate::{ScannerConfig, HashTypeEnum};
 
 /// Create an index using specified config
 ///

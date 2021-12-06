@@ -7,9 +7,9 @@ use digest::{FixedOutputDirty, Update, VariableOutput};
 use sha2;
 use blake2::VarBlake2b;
 
-use {HashType, HashTypeEnum};
-use v1::writer::{MAGIC, VERSION, Name};
-use v1::parser::{Hashes, Hexlified};
+use crate::{HashType, HashTypeEnum};
+use crate::v1::writer::{MAGIC, VERSION, Name};
+use crate::v1::parser::{Hashes, Hexlified};
 
 /// A non-validating emitter of v1 index files
 ///
@@ -161,9 +161,9 @@ impl<'a> io::Write for HashWriter<'a> {
 
 #[cfg(test)]
 mod test {
-    use v1::emitter::Emitter;
-    use v1::parser::Hashes;
-    use ::HashType;
+    use crate::v1::emitter::Emitter;
+    use crate::v1::parser::Hashes;
+    use crate::HashType;
     use std::path::Path;
 
     #[test]
